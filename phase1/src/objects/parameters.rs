@@ -1,9 +1,10 @@
+use ark_serialize::CanonicalSerialize;
 use setup_utils::{
     converters::{ContributionMode, ProvingSystem},
     UseCompression,
 };
 
-use algebra::{ConstantSerializedSize, PairingEngine};
+use ark_ec::pairing::Pairing;
 
 use std::marker::PhantomData;
 
@@ -21,13 +22,13 @@ pub struct CurveParameters<E> {
     engine_type: PhantomData<E>,
 }
 
-impl<E: PairingEngine> CurveParameters<E> {
+impl<E: Pairing> CurveParameters<E> {
     pub fn new() -> CurveParameters<E> {
         CurveParameters {
-            g1_size: <E as PairingEngine>::G1Affine::UNCOMPRESSED_SIZE,
-            g2_size: <E as PairingEngine>::G2Affine::UNCOMPRESSED_SIZE,
-            g1_compressed_size: <E as PairingEngine>::G1Affine::SERIALIZED_SIZE,
-            g2_compressed_size: <E as PairingEngine>::G2Affine::SERIALIZED_SIZE,
+            g1_size: <E as Pairing>::G1Affine::default().uncompressed_size(),
+            g2_size: <E as Pairing>::G2Affine::default().uncompressed_size(),
+            g1_compressed_size: <E as Pairing>::G1Affine::default().compressed_size(),
+            g2_compressed_size: <E as Pairing>::G2Affine::default().compressed_size(),
             engine_type: PhantomData,
         }
     }
@@ -69,7 +70,7 @@ pub struct Phase1Parameters<E> {
     pub hash_size: usize,
 }
 
-impl<E: PairingEngine> Phase1Parameters<E> {
+impl<E: Pairing> Phase1Parameters<E> {
     /// Constructs a new ceremony parameters object from the type of provided curve
     /// Panics if given batch_size = 0
     pub fn new_full(proving_system: ProvingSystem, total_size_in_log2: usize, batch_size: usize) -> Self {
@@ -295,9 +296,11 @@ impl<E: PairingEngine> Phase1Parameters<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use algebra::{Bls12_377, Bls12_381, BW6_761};
+    use ark_bls12_377::Bls12_377;
+    use ark_bls12_381::Bls12_381;
+    use ark_bw6_761::BW6_761;
 
-    fn curve_parameters_test<E: PairingEngine>(g1: usize, g2: usize, g1_compressed: usize, g2_compressed: usize) {
+    fn curve_parameters_test<E: Pairing>(g1: usize, g2: usize, g1_compressed: usize, g2_compressed: usize) {
         let p = CurveParameters::<E>::new();
         assert_eq!(p.g1_size, g1);
         assert_eq!(p.g2_size, g2);

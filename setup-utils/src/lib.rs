@@ -13,8 +13,15 @@ pub use groth16_utils::Groth16Params;
 
 mod elements;
 pub use elements::{
-    check_subgroup, deserialize, read_vec, serialize, BatchExpMode, CheckForCorrectness, ElementType,
-    SubgroupCheckMode, UseCompression,
+    check_subgroup,
+    deserialize,
+    read_vec,
+    serialize,
+    BatchExpMode,
+    CheckForCorrectness,
+    ElementType,
+    SubgroupCheckMode,
+    UseCompression,
 };
 
 mod helpers;

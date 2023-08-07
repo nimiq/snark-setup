@@ -1,27 +1,27 @@
 use crate::{Phase1, Phase1Parameters, PublicKey};
 use setup_utils::*;
 
-use algebra::{AffineCurve, PairingEngine, ProjectiveCurve};
-use algebra_core::UniformRand;
+use ark_ec::{pairing::Pairing, AffineRepr, CurveGroup};
+use ark_std::UniformRand;
 
 use rand::{thread_rng, Rng};
 
 pub use setup_utils::{BatchExpMode, CheckForCorrectness, UseCompression};
 
 /// Returns a random affine curve point from the provided RNG.
-pub fn random_point<C: AffineCurve>(rng: &mut impl Rng) -> C {
-    C::Projective::rand(rng).into_affine()
+pub fn random_point<C: AffineRepr>(rng: &mut impl Rng) -> C {
+    C::Group::rand(rng).into_affine()
 }
 
 /// Returns a random affine curve point vector from the provided RNG.
-pub fn random_point_vec<C: AffineCurve>(size: usize, rng: &mut impl Rng) -> Vec<C> {
+pub fn random_point_vec<C: AffineRepr>(size: usize, rng: &mut impl Rng) -> Vec<C> {
     (0..size).map(|_| random_point(rng)).collect()
 }
 
 /// Helper for testing verification of a transformation
 /// it creates an initial accumulator and contributes to it
 /// the test must call verify on the returned values.
-pub fn setup_verify<E: PairingEngine>(
+pub fn setup_verify<E: Pairing>(
     compressed_input: UseCompression,
     check_input_for_correctness: CheckForCorrectness,
     compressed_output: UseCompression,
@@ -56,7 +56,7 @@ pub fn setup_verify<E: PairingEngine>(
 }
 
 /// Helper to initialize an accumulator and return both the struct and its serialized form.
-pub fn generate_input<E: PairingEngine>(
+pub fn generate_input<E: Pairing>(
     parameters: &Phase1Parameters<E>,
     compressed: UseCompression,
     check_for_correctness: CheckForCorrectness,
@@ -71,23 +71,20 @@ pub fn generate_input<E: PairingEngine>(
 }
 
 /// Helper to initialize an empty output accumulator, to be used for contributions.
-pub fn generate_output<E: PairingEngine>(parameters: &Phase1Parameters<E>, compressed: UseCompression) -> Vec<u8> {
+pub fn generate_output<E: Pairing>(parameters: &Phase1Parameters<E>, compressed: UseCompression) -> Vec<u8> {
     let expected_response_length = parameters.get_length(compressed);
     vec![0; expected_response_length]
 }
 
 /// Helper to initialize an empty output accumulator, to be used for new challenges.
-pub fn generate_new_challenge<E: PairingEngine>(
-    parameters: &Phase1Parameters<E>,
-    compressed: UseCompression,
-) -> Vec<u8> {
+pub fn generate_new_challenge<E: Pairing>(parameters: &Phase1Parameters<E>, compressed: UseCompression) -> Vec<u8> {
     let expected_new_challenge_length = parameters.get_length(compressed);
     vec![0; expected_new_challenge_length]
 }
 
 /// Helper to generate a random accumulator for Phase 1 given its parameters.
 #[cfg(test)]
-pub fn generate_random_accumulator<E: PairingEngine>(
+pub fn generate_random_accumulator<E: Pairing>(
     parameters: &Phase1Parameters<E>,
     compressed: UseCompression,
 ) -> (Vec<u8>, Phase1<E>) {
@@ -117,7 +114,7 @@ pub fn generate_random_accumulator<E: PairingEngine>(
                 tau_powers_g2: random_point_vec(parameters.total_size_in_log2 + 2, rng),
                 alpha_tau_powers_g1: random_point_vec(3 + 3 * parameters.total_size_in_log2, rng),
                 beta_tau_powers_g1: random_point_vec(0, rng),
-                beta_g2: E::G2Affine::prime_subgroup_generator(),
+                beta_g2: E::G2Affine::generator(),
                 hash: blank_hash(),
                 parameters,
             };

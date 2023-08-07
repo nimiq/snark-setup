@@ -2,7 +2,7 @@ use blake2s_simd::Params;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaChaRng;
 
-pub const SEED_PERSONALIZATION: &[u8] = b"NIMIQSEED";
+pub const SEED_PERSONALIZATION: &[u8] = b"NIM-SEED";
 
 pub fn derive_rng_from_seed(seed: &[u8]) -> impl Rng {
     let seed_hash = Params::new()

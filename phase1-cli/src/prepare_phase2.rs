@@ -1,7 +1,8 @@
 use phase1::{parameters::*, Phase1};
 use setup_utils::{CheckForCorrectness, Groth16Params, Result, UseCompression};
+use std::ops::Neg;
 
-use algebra::PairingEngine as Engine;
+use ark_ec::pairing::Pairing as Engine;
 
 use memmap::*;
 use std::fs::OpenOptions;
@@ -14,7 +15,10 @@ pub fn prepare_phase2<T: Engine + Sync>(
     response_filename: &str,
     num_powers: usize,
     parameters: &Phase1Parameters<T>,
-) -> Result<()> {
+) -> Result<()>
+where
+    T::G1Affine: Neg<Output = T::G1Affine>,
+{
     // Try to load response file from disk.
     let reader = OpenOptions::new()
         .read(true)

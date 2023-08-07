@@ -1,6 +1,9 @@
+use ark_std::UniformRand;
+use std::ops::Mul;
+
 use super::*;
 
-impl<'a, E: PairingEngine + Sync> Phase1<'a, E> {
+impl<'a, E: Pairing + Sync> Phase1<'a, E> {
     /// Constructs a keypair given an RNG and a 64-byte transcript `digest`.
     pub fn key_generation<R: Rng>(rng: &mut R, digest: &[u8]) -> Result<(PublicKey<E>, PrivateKey<E>)> {
         if digest.len() != 64 {
@@ -11,15 +14,15 @@ impl<'a, E: PairingEngine + Sync> Phase1<'a, E> {
         }
 
         // tau is a contribution to the "powers of tau", in a set of points of the form "tau^i * G"
-        let tau = E::Fr::rand(rng);
+        let tau = E::ScalarField::rand(rng);
         // alpha and beta are a set of contributions in a form "alpha * tau^i * G" and that are required
         // for construction of the polynomials
-        let alpha = E::Fr::rand(rng);
-        let beta = E::Fr::rand(rng);
+        let alpha = E::ScalarField::rand(rng);
+        let beta = E::ScalarField::rand(rng);
 
-        let mut op = |x: E::Fr, personalization: u8| -> Result<_> {
+        let mut op = |x: E::ScalarField, personalization: u8| -> Result<_> {
             // Sample random g^s
-            let g1_s = E::G1Projective::rand(rng).into_affine();
+            let g1_s = E::G1::rand(rng).into_affine();
             // Compute g^{s*x}
             let g1_s_x = g1_s.mul(x).into_affine();
             // Hash into G2 as g^{s'}

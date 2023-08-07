@@ -1,12 +1,11 @@
 use phase2::parameters::MPCParameters;
 use setup_utils::{calculate_hash, print_hash, CheckForCorrectness, SubgroupCheckMode};
 
-use algebra::BW6_761;
+use ark_bw6_761::BW6_761;
 
 use crate::{COMBINED_IS_COMPRESSED, COMPRESS_CONTRIBUTE_INPUT, COMPRESS_CONTRIBUTE_OUTPUT};
 use memmap::MmapOptions;
-use std::fs::OpenOptions;
-use std::io::Write;
+use std::{fs::OpenOptions, io::Write};
 use tracing::info;
 
 pub fn verify(

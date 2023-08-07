@@ -1,4 +1,5 @@
-use algebra::{AffineCurve, PairingEngine, ProjectiveCurve, Zero};
+use ark_ec::{pairing::Pairing, AffineRepr, CurveGroup};
+use ark_std::Zero;
 
 use rayon::prelude::*;
 
@@ -7,16 +8,16 @@ use rayon::prelude::*;
 /// The returned points are _affine_
 #[allow(clippy::too_many_arguments)]
 #[allow(clippy::type_complexity)]
-pub fn eval<E: PairingEngine>(
+pub fn eval<E: Pairing>(
     // Lagrange coefficients for tau
     coeffs_g1: &[E::G1Affine],
     coeffs_g2: &[E::G2Affine],
     alpha_coeffs_g1: &[E::G1Affine],
     beta_coeffs_g1: &[E::G1Affine],
     // QAP polynomials
-    at: &[Vec<(E::Fr, usize)>],
-    bt: &[Vec<(E::Fr, usize)>],
-    ct: &[Vec<(E::Fr, usize)>],
+    at: &[Vec<(E::ScalarField, usize)>],
+    bt: &[Vec<(E::ScalarField, usize)>],
+    ct: &[Vec<(E::ScalarField, usize)>],
     // The number of inputs
     num_inputs: usize,
 ) -> (
@@ -36,22 +37,22 @@ pub fn eval<E: PairingEngine>(
     let (gamma_abc_g1, l) = ext.split_at(num_inputs);
 
     // back to affine and return
-    let a_g1 = a_g1.iter().map(|p| p.into_affine()).collect();
-    let b_g1 = b_g1.iter().map(|p| p.into_affine()).collect();
-    let b_g2 = b_g2.iter().map(|p| p.into_affine()).collect();
-    let gamma_abc_g1 = gamma_abc_g1.iter().map(|p| p.into_affine()).collect();
-    let l = l.iter().map(|p| p.into_affine()).collect();
+    let a_g1 = E::G1::normalize_batch(&a_g1);
+    let b_g1 = E::G1::normalize_batch(&b_g1);
+    let b_g2 = E::G2::normalize_batch(&b_g2);
+    let gamma_abc_g1 = E::G1::normalize_batch(&gamma_abc_g1);
+    let l = E::G1::normalize_batch(&l);
 
     (a_g1, b_g1, b_g2, gamma_abc_g1, l)
 }
 
 #[allow(clippy::type_complexity)]
 #[allow(clippy::op_ref)] // false positive by clippy
-fn dot_product_ext<E: PairingEngine>(
-    (at, beta_coeffs_g1): (&[Vec<(E::Fr, usize)>], &[E::G1Affine]),
-    (bt, alpha_coeffs_g1): (&[Vec<(E::Fr, usize)>], &[E::G1Affine]),
-    (ct, coeffs_g1): (&[Vec<(E::Fr, usize)>], &[E::G1Affine]),
-) -> Vec<E::G1Projective> {
+fn dot_product_ext<E: Pairing>(
+    (at, beta_coeffs_g1): (&[Vec<(E::ScalarField, usize)>], &[E::G1Affine]),
+    (bt, alpha_coeffs_g1): (&[Vec<(E::ScalarField, usize)>], &[E::G1Affine]),
+    (ct, coeffs_g1): (&[Vec<(E::ScalarField, usize)>], &[E::G1Affine]),
+) -> Vec<E::G1> {
     let mut ret = at
         .par_iter()
         .zip(bt.par_iter().zip(ct))
@@ -59,17 +60,19 @@ fn dot_product_ext<E: PairingEngine>(
             dot_product(&at, &beta_coeffs_g1) + &dot_product(&bt, &alpha_coeffs_g1) + &dot_product(&ct, &coeffs_g1)
         })
         .collect::<Vec<_>>();
-    E::G1Projective::batch_normalization(&mut ret);
+    // PITODO
+    // E::G1::batch_normalization(&mut ret);
     ret
 }
 
 /// Returns a batch normalized projective vector where the coefficients
 /// have been applied to the input
 /// This is a NxN * Nx1 -> Nx1 matrix multiplication basically
-fn dot_product_vec<C: AffineCurve>(input: &[Vec<(C::ScalarField, usize)>], coeffs: &[C]) -> Vec<C::Projective> {
-    let mut ret = input.par_iter().map(|row| dot_product(row, coeffs)).collect::<Vec<_>>();
+fn dot_product_vec<C: AffineRepr>(input: &[Vec<(C::ScalarField, usize)>], coeffs: &[C]) -> Vec<C::Group> {
+    let ret = input.par_iter().map(|row| dot_product(row, coeffs)).collect::<Vec<_>>();
     // Batch normalize
-    C::Projective::batch_normalization(&mut ret);
+    // PITODO
+    // C::Group::normalize_batch(&mut ret);
     ret
 }
 
@@ -77,11 +80,11 @@ fn dot_product_vec<C: AffineCurve>(input: &[Vec<(C::ScalarField, usize)>], coeff
 /// If the usize of the input is an Auxiliary index it uses the
 /// `coeffs` vector offset by `num_inputs`
 #[allow(clippy::redundant_closure)]
-fn dot_product<C: AffineCurve>(input: &[(C::ScalarField, usize)], coeffs: &[C]) -> C::Projective {
+fn dot_product<C: AffineRepr>(input: &[(C::ScalarField, usize)], coeffs: &[C]) -> C::Group {
     input
         .into_par_iter()
         .fold(
-            || C::Projective::zero(),
+            || C::Group::zero(),
             |mut sum, &(coeff, ind)| {
                 sum += &coeffs[ind].mul(coeff);
                 sum
@@ -92,11 +95,11 @@ fn dot_product<C: AffineCurve>(input: &[(C::ScalarField, usize)], coeffs: &[C]) 
 
 #[cfg(test)]
 mod tests {
+    use std::ops::Mul;
+
     use super::*;
-    use algebra::{
-        bls12_377::{Bls12_377, Fr, G1Affine, G1Projective},
-        UniformRand,
-    };
+    use ark_bls12_377::{Bls12_377, Fr, G1Affine, G1Projective};
+    use ark_std::UniformRand;
     use phase1::helpers::testing::random_point_vec;
     use rand::{thread_rng, Rng};
 

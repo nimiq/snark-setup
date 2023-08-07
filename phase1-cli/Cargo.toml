@@ -10,23 +10,22 @@ description = "CLI implementation of Phase 1"
 homepage = "https://github.com/celo-org/snark-setup"
 repository = "https://github.com/celo-org/snark-setup"
 license = "MIT/Apache-2.0"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 phase1 = { path = "../phase1", default-features = false }
 setup-utils = { path = "../setup-utils", default-features = false }
 
-algebra = { git = "https://github.com/scipr-lab/zexe", version = "0.1.1-alpha.0", package = "algebra", features = [
-    "bls12_377",
-    "bw6_761",
-    "derive",
-] }
+ark-ec = { version = "0.4", features = ["std"] }
+ark-bls12-377 = { version = "0.4", features = ["std"] }
+ark-bls12-381 = { version = "0.4", features = ["std"] }
+ark-bw6-761 = { version = "0.4", features = ["std"] }
 
-gumdrop = { version = "0.7.0" }
-hex = { version = "0.4.2" }
-memmap = { version = "0.7.0" }
-rand = { version = "0.7" }
-tracing = { version = "0.1.17" }
+gumdrop = { version = "0.8" }
+hex = { version = "0.4" }
+memmap = { version = "0.7" }
+rand = { version = "0.8" }
+tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.2" }
 
 [dev-dependencies]
@@ -37,10 +36,9 @@ wasm-bindgen-test = { version = "0.3.15" }
 rustc_version = { version = "0.2" }
 
 [features]
-default = ["cli", "bw6_asm"]
+default = ["cli"]
 cli = ["phase1/cli", "parallel", "setup-utils/cli"]
-parallel = ["phase1/parallel", "setup-utils/parallel", "algebra/parallel"]
-bw6_asm = ["algebra/bw6_asm"]
+parallel = ["phase1/parallel", "setup-utils/parallel", "ark-ec/parallel"]
 
 [[bin]]
 name = "phase1"

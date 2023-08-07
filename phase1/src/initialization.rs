@@ -1,7 +1,7 @@
 use super::*;
 use setup_utils::rayon_cfg;
 
-impl<'a, E: PairingEngine + Sync> Phase1<'a, E> {
+impl<'a, E: Pairing + Sync> Phase1<'a, E> {
     ///
     /// Phase 1: Initialization
     ///
@@ -19,8 +19,8 @@ impl<'a, E: PairingEngine + Sync> Phase1<'a, E> {
 
         let (tau_g1, tau_g2, alpha_g1, beta_g1, beta_g2) = split_mut(output, parameters, compressed_output);
 
-        let one_g1 = &E::G1Affine::prime_subgroup_generator();
-        let one_g2 = &E::G2Affine::prime_subgroup_generator();
+        let one_g1 = &E::G1Affine::generator();
+        let one_g2 = &E::G2Affine::generator();
 
         rayon_cfg::scope(|s| {
             s.spawn(|_| {
@@ -60,9 +60,11 @@ impl<'a, E: PairingEngine + Sync> Phase1<'a, E> {
 mod tests {
     use super::*;
 
-    use algebra::{AffineCurve, Bls12_377, BW6_761};
+    use ark_bls12_377::Bls12_377;
+    use ark_bw6_761::BW6_761;
+    use ark_ec::AffineRepr;
 
-    fn curve_initialization_test<E: PairingEngine>(powers: usize, batch: usize, compression: UseCompression) {
+    fn curve_initialization_test<E: Pairing>(powers: usize, batch: usize, compression: UseCompression) {
         for proving_system in &[ProvingSystem::Groth16, ProvingSystem::Marlin] {
             let parameters = Phase1Parameters::<E>::new_full(*proving_system, powers, batch);
             let expected_challenge_length = match compression {
@@ -76,30 +78,31 @@ mod tests {
             let deserialized =
                 Phase1::deserialize(&output, compression, CheckForCorrectness::Full, &parameters).unwrap();
 
-            let g1_zero = E::G1Affine::prime_subgroup_generator();
-            let g2_zero = E::G2Affine::prime_subgroup_generator();
+            let g1_zero = E::G1Affine::generator();
+            let g2_zero = E::G2Affine::generator();
 
             match parameters.proving_system {
                 ProvingSystem::Groth16 => {
                     assert_eq!(deserialized.tau_powers_g1, vec![g1_zero; parameters.powers_g1_length]);
                     assert_eq!(deserialized.tau_powers_g2, vec![g2_zero; parameters.powers_length]);
-                    assert_eq!(
-                        deserialized.alpha_tau_powers_g1,
-                        vec![g1_zero; parameters.powers_length]
-                    );
+                    assert_eq!(deserialized.alpha_tau_powers_g1, vec![
+                        g1_zero;
+                        parameters.powers_length
+                    ]);
                     assert_eq!(deserialized.beta_tau_powers_g1, vec![g1_zero; parameters.powers_length]);
                     assert_eq!(deserialized.beta_g2, g2_zero);
                 }
                 ProvingSystem::Marlin => {
                     assert_eq!(deserialized.tau_powers_g1, vec![g1_zero; parameters.powers_length]);
-                    assert_eq!(
-                        deserialized.tau_powers_g2,
-                        vec![g2_zero; parameters.total_size_in_log2 + 2]
-                    );
-                    assert_eq!(
-                        deserialized.alpha_tau_powers_g1,
-                        vec![g1_zero; 3 + 3 * parameters.total_size_in_log2]
-                    );
+                    assert_eq!(deserialized.tau_powers_g2, vec![
+                        g2_zero;
+                        parameters.total_size_in_log2 + 2
+                    ]);
+                    assert_eq!(deserialized.alpha_tau_powers_g1, vec![
+                        g1_zero;
+                        3 + 3 * parameters
+                            .total_size_in_log2
+                    ]);
                 }
             }
         }

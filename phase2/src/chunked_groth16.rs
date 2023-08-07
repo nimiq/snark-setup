@@ -8,21 +8,29 @@ use crate::{
     parameters::*,
 };
 use setup_utils::{
-    batch_mul, check_same_ratio, deserialize, merge_pairs, serialize, BatchExpMode, CheckForCorrectness, InvariantKind,
-    Phase2Error, Result, UseCompression,
+    batch_mul,
+    check_same_ratio,
+    deserialize,
+    merge_pairs,
+    serialize,
+    BatchExpMode,
+    CheckForCorrectness,
+    InvariantKind,
+    Phase2Error,
+    Result,
+    UseCompression,
 };
 
-use algebra::{
-    AffineCurve, CanonicalDeserialize, CanonicalSerialize, ConstantSerializedSize, Field, PairingEngine,
-    ProjectiveCurve,
-};
-use groth16::VerifyingKey;
+use ark_ec::{pairing::Pairing, AffineRepr, CurveGroup};
+use ark_ff::Field;
+use ark_groth16::VerifyingKey;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 
 use byteorder::{BigEndian, WriteBytesExt};
 use rand::Rng;
 use std::{
     io::{Read, Seek, SeekFrom, Write},
-    ops::Neg,
+    ops::{Mul, Neg},
 };
 use tracing::{debug, info, info_span, trace};
 
@@ -30,7 +38,7 @@ use tracing::{debug, info, info_span, trace};
 /// has been correctly calculated from `before`. Large vectors will be read in
 /// `batch_size` batches
 #[allow(clippy::cognitive_complexity)]
-pub fn verify<E: PairingEngine>(
+pub fn verify<E: Pairing>(
     before: &mut [u8],
     after: &mut [u8],
     batch_size: usize,
@@ -47,7 +55,8 @@ pub fn verify<E: PairingEngine>(
     let vk_before = deserialize::<VerifyingKey<E>, _>(&mut before, compressed, check_correctness)?;
     let beta_g1_before = deserialize::<E::G1Affine, _>(&mut before, compressed, check_correctness)?;
     // we don't need the previous delta_g1 so we can skip it
-    before.seek(SeekFrom::Current(E::G1Affine::SERIALIZED_SIZE as i64))?;
+    // it has the same length as beta_g1_before
+    before.seek(SeekFrom::Current(beta_g1_before.compressed_size() as i64))?;
 
     let vk_after = deserialize::<VerifyingKey<E>, _>(&mut after, compressed, check_correctness)?;
     let beta_g1_after = deserialize::<E::G1Affine, _>(&mut after, compressed, check_correctness)?;
@@ -79,7 +88,7 @@ pub fn verify<E: PairingEngine>(
     let (after_alpha_g1, after_beta_g1, after_beta_g2, after_h, after_l) = split_transcript::<E>(remaining_after)?;
     // Save the position where the cursor should be after the threads execute
     let pos = position
-        + 5 * u64::SERIALIZED_SIZE
+        + 5 * 8 // u64 = 8 bytes
         + before_alpha_g1.len()
         + before_beta_g1.len()
         + before_beta_g2.len()
@@ -206,8 +215,8 @@ pub fn verify<E: PairingEngine>(
     debug!("public key was updated correctly");
 
     check_same_ratio::<E>(
-        &(E::G1Affine::prime_subgroup_generator(), pubkey.delta_after),
-        &(E::G2Affine::prime_subgroup_generator(), vk_after.delta_g2),
+        &(E::G1Affine::generator(), pubkey.delta_after),
+        &(E::G2Affine::generator(), vk_after.delta_g2),
         "Inconsistent G2 Delta",
     )?;
 
@@ -225,7 +234,7 @@ pub fn verify<E: PairingEngine>(
 /// followed by the contributions array and the contributions hash), this will modify the
 /// Delta_g1, the VK's Delta_g2 and will update the H and L queries in place while leaving
 /// everything else unchanged
-pub fn contribute<E: PairingEngine, R: Rng>(
+pub fn contribute<E: Pairing, R: Rng>(
     buffer: &mut [u8],
     rng: &mut R,
     batch_size: usize,
@@ -242,7 +251,8 @@ pub fn contribute<E: PairingEngine, R: Rng>(
     // The VK is small so we read it directly from the start
     let mut vk = deserialize::<VerifyingKey<E>, _>(&mut buffer, compressed, check_correctness)?;
     // leave beta_g1 unchanged
-    buffer.seek(SeekFrom::Current(E::G1Affine::SERIALIZED_SIZE as i64))?;
+    let g1_compressed_size = E::G1Affine::default().compressed_size();
+    buffer.seek(SeekFrom::Current(g1_compressed_size as i64))?;
     // read delta_g1
     let mut delta_g1 = deserialize::<E::G1Affine, _>(&mut buffer, compressed, check_correctness)?;
 
@@ -275,11 +285,11 @@ pub fn contribute<E: PairingEngine, R: Rng>(
     // go back to the start of the buffer to write the updated vk and delta_g1
     buffer.seek(SeekFrom::Start(0))?;
     // write the vk
-    vk.serialize(&mut buffer)?;
+    vk.serialize_compressed(&mut buffer)?;
     // leave beta_g1 unchanged
-    buffer.seek(SeekFrom::Current(E::G1Affine::SERIALIZED_SIZE as i64))?;
+    buffer.seek(SeekFrom::Current(g1_compressed_size as i64))?;
     // write delta_g1
-    delta_g1.serialize(&mut buffer)?;
+    delta_g1.serialize_compressed(&mut buffer)?;
 
     debug!("updated delta g1 and vk delta g2");
 
@@ -292,11 +302,11 @@ pub fn contribute<E: PairingEngine, R: Rng>(
     // The previous operations are all on small size elements so do them serially
     // the `h` and `l` queries are relatively large, so we can get a nice speedup
     // by performing the reads and writes in parallel
-    let h_query_len = u64::deserialize(&mut buffer)? as usize;
+    let h_query_len = u64::deserialize_compressed(&mut buffer)? as usize;
     let position = buffer.position() as usize;
     let remaining = &mut buffer.get_mut()[position..];
-    let (h, l) = remaining.split_at_mut(h_query_len * E::G1Affine::SERIALIZED_SIZE);
-    let l_query_len = u64::deserialize(&mut &*l)? as usize;
+    let (h, l) = remaining.split_at_mut(h_query_len * g1_compressed_size);
+    let l_query_len = u64::deserialize_compressed(&mut &*l)? as usize;
 
     // spawn 2 scoped threads to perform the contribution
     crossbeam::scope(|s| -> Result<_> {
@@ -324,7 +334,7 @@ pub fn contribute<E: PairingEngine, R: Rng>(
             chunked_mul_queries::<E::G1Affine>(
                 // since we read the l_query length we will pass the buffer
                 // after it
-                &mut l[u64::SERIALIZED_SIZE..],
+                &mut l[8..], // u64 = 8 bytes
                 l_query_len,
                 &delta_inv,
                 batch_size,
@@ -344,7 +354,7 @@ pub fn contribute<E: PairingEngine, R: Rng>(
     debug!("appending contribution...");
 
     // we processed the 2 elements via the raw buffer, so we have to modify the cursor accordingly
-    let pos = position + (l_query_len + h_query_len) * E::G1Affine::SERIALIZED_SIZE + u64::SERIALIZED_SIZE;
+    let pos = position + (l_query_len + h_query_len) * g1_compressed_size + 8; // u64 = 8 bytes
     buffer.seek(SeekFrom::Start(pos as u64))?;
 
     // leave the cs_hash unchanged (64 bytes size)
@@ -363,9 +373,9 @@ pub fn contribute<E: PairingEngine, R: Rng>(
 }
 
 /// Skips the vector ahead of the cursor.
-fn skip_vec<C: AffineCurve, B: Read + Seek>(mut buffer: B) -> Result<()> {
-    let len = u64::deserialize(&mut buffer)? as usize;
-    let skip_len = len * C::SERIALIZED_SIZE;
+fn skip_vec<C: AffineRepr, B: Read + Seek>(mut buffer: B) -> Result<()> {
+    let len = u64::deserialize_compressed(&mut buffer)? as usize;
+    let skip_len = len * C::default().compressed_size();
     buffer.seek(SeekFrom::Current(skip_len as i64))?;
     Ok(())
 }
@@ -374,7 +384,7 @@ fn skip_vec<C: AffineCurve, B: Read + Seek>(mut buffer: B) -> Result<()> {
 /// The first 8 bytes read from the buffer are the vector's length. The result
 /// is written back to the buffer in place
 #[allow(clippy::cognitive_complexity)]
-fn chunked_mul_queries<C: AffineCurve>(
+fn chunked_mul_queries<C: AffineRepr>(
     buffer: &mut [u8],
     query_len: usize,
     element: &C::ScalarField,
@@ -429,7 +439,7 @@ fn chunked_mul_queries<C: AffineCurve>(
 
 /// Deserializes `num_els` elements, multiplies them by `element`
 /// and writes them back in place
-fn mul_query<C: AffineCurve, B: Read + Write + Seek>(
+fn mul_query<C: AffineRepr, B: Read + Write + Seek>(
     mut buffer: B,
     element: &C::ScalarField,
     num_els: usize,
@@ -444,7 +454,9 @@ fn mul_query<C: AffineCurve, B: Read + Write + Seek>(
     batch_mul(&mut query, element, batch_exp_mode)?;
 
     // seek back to update the elements
-    buffer.seek(SeekFrom::Current(((num_els * C::SERIALIZED_SIZE) as i64).neg()))?;
+    buffer.seek(SeekFrom::Current(
+        ((num_els * C::default().compressed_size()) as i64).neg(),
+    ))?;
     query
         .iter()
         .map(|el| serialize(el, &mut buffer, compressed))
@@ -455,7 +467,7 @@ fn mul_query<C: AffineCurve, B: Read + Write + Seek>(
 
 /// Checks that 2 vectors read from the 2 buffers are the same in chunks
 #[allow(clippy::cognitive_complexity)]
-fn chunked_ensure_unchanged_vec<C: AffineCurve>(
+fn chunked_ensure_unchanged_vec<C: AffineRepr>(
     before: &mut [u8],
     after: &mut [u8],
     batch_size: usize,
@@ -467,8 +479,9 @@ fn chunked_ensure_unchanged_vec<C: AffineCurve>(
     let _enter = span.enter();
     debug!("starting...");
 
-    let len_before = before.len() / C::SERIALIZED_SIZE;
-    let len_after = after.len() / C::SERIALIZED_SIZE;
+    let c_compressed_size = C::default().compressed_size();
+    let len_before = before.len() / c_compressed_size;
+    let len_after = after.len() / c_compressed_size;
     ensure_unchanged(len_before, len_after, kind.clone())?;
 
     let mut before = std::io::Cursor::new(before);
@@ -505,7 +518,7 @@ fn chunked_ensure_unchanged_vec<C: AffineCurve>(
 }
 
 /// Checks that 2 vectors read from the 2 buffers are the same in chunks
-fn chunked_check_ratio<E: PairingEngine>(
+fn chunked_check_ratio<E: Pairing>(
     before: &mut [u8],
     before_delta_g2: E::G2Affine,
     after: &mut [u8],
@@ -520,8 +533,10 @@ fn chunked_check_ratio<E: PairingEngine>(
     debug!("starting...");
 
     // read total length
-    let len_before = before.len() / E::G1Affine::SERIALIZED_SIZE;
-    let len_after = after.len() / E::G1Affine::SERIALIZED_SIZE;
+    // PITODO: check if we should use compressed argument
+    let g1_compressed_size = E::G1Affine::default().compressed_size();
+    let len_before = before.len() / g1_compressed_size;
+    let len_after = after.len() / g1_compressed_size;
     if len_before != len_after {
         return Err(Phase2Error::InvalidLength.into());
     }
@@ -550,7 +565,7 @@ fn chunked_check_ratio<E: PairingEngine>(
     Ok(())
 }
 
-fn read_batch<C: AffineCurve, B: Read + Write + Seek>(
+fn read_batch<C: AffineRepr, B: Read + Write + Seek>(
     mut before: B,
     mut after: B,
     batch_size: usize,
@@ -569,23 +584,25 @@ fn read_batch<C: AffineCurve, B: Read + Write + Seek>(
 type SplitBuf<'a> = (&'a mut [u8], &'a mut [u8], &'a mut [u8], &'a mut [u8], &'a mut [u8]);
 
 /// splits the transcript from phase 1 after it's been prepared and converted to coefficient form
-fn split_transcript<E: PairingEngine>(input: &mut [u8]) -> Result<SplitBuf> {
+fn split_transcript<E: Pairing>(input: &mut [u8]) -> Result<SplitBuf> {
     // A, bg1, bg2, h, l
-    let len_size = u64::SERIALIZED_SIZE;
-    let a_g1_length = u64::deserialize(&mut &*input)? as usize;
-    let (a_g1, others) = input[len_size..].split_at_mut(a_g1_length * E::G1Affine::SERIALIZED_SIZE);
+    let len_size = 8; // u64 = 8 bytes
+    let g1_compressed_size = E::G1Affine::default().compressed_size();
+    let g2_compressed_size = E::G2Affine::default().compressed_size();
+    let a_g1_length = u64::deserialize_compressed(&mut &*input)? as usize;
+    let (a_g1, others) = input[len_size..].split_at_mut(a_g1_length * g1_compressed_size);
 
-    let b_g1_length = u64::deserialize(&mut &*others)? as usize;
-    let (b_g1, others) = others[len_size..].split_at_mut(b_g1_length * E::G1Affine::SERIALIZED_SIZE);
+    let b_g1_length = u64::deserialize_compressed(&mut &*others)? as usize;
+    let (b_g1, others) = others[len_size..].split_at_mut(b_g1_length * g1_compressed_size);
 
-    let b_g2_length = u64::deserialize(&mut &*others)? as usize;
-    let (b_g2, others) = others[len_size..].split_at_mut(b_g2_length * E::G2Affine::SERIALIZED_SIZE);
+    let b_g2_length = u64::deserialize_compressed(&mut &*others)? as usize;
+    let (b_g2, others) = others[len_size..].split_at_mut(b_g2_length * g2_compressed_size);
 
-    let h_g1_length = u64::deserialize(&mut &*others)? as usize;
-    let (h_g1, others) = others[len_size..].split_at_mut(h_g1_length * E::G1Affine::SERIALIZED_SIZE);
+    let h_g1_length = u64::deserialize_compressed(&mut &*others)? as usize;
+    let (h_g1, others) = others[len_size..].split_at_mut(h_g1_length * g1_compressed_size);
 
-    let l_g1_length = u64::deserialize(&mut &*others)? as usize;
-    let (l_g1, _) = others[len_size..].split_at_mut(l_g1_length * E::G1Affine::SERIALIZED_SIZE);
+    let l_g1_length = u64::deserialize_compressed(&mut &*others)? as usize;
+    let (l_g1, _) = others[len_size..].split_at_mut(l_g1_length * g1_compressed_size);
 
     Ok((a_g1, b_g1, b_g2, h_g1, l_g1))
 }

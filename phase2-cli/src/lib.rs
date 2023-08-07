@@ -19,10 +19,15 @@ use setup_utils::converters::{ContributionMode, CurveKind, ProvingSystem};
 use gumdrop::Options;
 use setup_utils::{
     converters::{
-        batch_exp_mode_from_str, contribution_mode_from_str, curve_from_str, proving_system_from_str,
+        batch_exp_mode_from_str,
+        contribution_mode_from_str,
+        curve_from_str,
+        proving_system_from_str,
         subgroup_check_mode_from_str,
     },
-    BatchExpMode, SubgroupCheckMode, UseCompression,
+    BatchExpMode,
+    SubgroupCheckMode,
+    UseCompression,
 };
 use std::default::Default;
 

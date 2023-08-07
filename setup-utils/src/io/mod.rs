@@ -17,7 +17,7 @@ mod tests {
     use super::*;
     use phase1::helpers::testing::random_point_vec;
 
-    use ark_ec::models::bls12::{G1Affine, G2Affine};
+    use ark_bls12_377::{G1Affine, G2Affine};
 
     use crate::CheckForCorrectness;
     use rand::thread_rng;
@@ -56,7 +56,7 @@ mod tests {
 
     fn read_write_single_element<E: AffineRepr>(compression: UseCompression) {
         // uncompressed buffers are twice the size
-        let el = E::prime_subgroup_generator();
+        let el = E::generator();
         let mut buf = vec![];
         // assert that the deserialized version is the same as the serialized
         buf.write_element(&el, compression).unwrap();
@@ -67,7 +67,7 @@ mod tests {
     fn read_write_single_element_preallocated<E: AffineRepr>(compression: UseCompression) {
         // uncompressed buffers are twice the size
         let mut prealloc = E::zero();
-        let el = E::prime_subgroup_generator();
+        let el = E::generator();
         let mut buf = vec![];
         // assert that the deserialized version is the same as the serialized
         buf.write_element(&el, compression).unwrap();

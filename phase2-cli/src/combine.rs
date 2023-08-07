@@ -1,10 +1,13 @@
 use phase2::parameters::{verify_transcript, MPCParameters};
 use setup_utils::{print_hash, CheckForCorrectness, SubgroupCheckMode, UseCompression};
 
-use algebra::{CanonicalSerialize, BW6_761};
+use ark_bw6_761::BW6_761;
+use ark_serialize::CanonicalSerialize;
 
-use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::{
+    fs::File,
+    io::{BufRead, BufReader},
+};
 use tracing::info;
 
 use crate::{COMBINED_IS_COMPRESSED, COMPRESS_CONTRIBUTE_INPUT, COMPRESS_CONTRIBUTE_OUTPUT};

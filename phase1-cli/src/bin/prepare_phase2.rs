@@ -1,9 +1,12 @@
 use phase1::parameters::*;
 use phase1_cli::prepare_phase2;
-use setup_utils::converters::{curve_from_str, proving_system_from_str, CurveKind, ProvingSystem};
-use setup_utils::Result;
+use setup_utils::{
+    converters::{curve_from_str, proving_system_from_str, CurveKind, ProvingSystem},
+    Result,
+};
 
-use algebra::{Bls12_377, BW6_761};
+use ark_bls12_377::Bls12_377;
+use ark_bw6_761::BW6_761;
 
 use gumdrop::Options;
 use std::time::Instant;

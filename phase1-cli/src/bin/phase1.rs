@@ -1,14 +1,27 @@
 use phase1::{CurveParameters, Phase1Parameters};
 use phase1_cli::{
-    combine, contribute, new_challenge, split, transform_pok_and_correctness, transform_ratios, Command, Phase1Opts,
+    combine,
+    contribute,
+    new_challenge,
+    split,
+    transform_pok_and_correctness,
+    transform_ratios,
+    Command,
+    Phase1Opts,
 };
 use setup_utils::{
-    converters::CurveKind, derive_rng_from_seed, from_slice, upgrade_correctness_check_config,
-    DEFAULT_CONTRIBUTE_CHECK_INPUT_CORRECTNESS, DEFAULT_VERIFY_CHECK_INPUT_CORRECTNESS,
+    converters::CurveKind,
+    derive_rng_from_seed,
+    from_slice,
+    upgrade_correctness_check_config,
+    DEFAULT_CONTRIBUTE_CHECK_INPUT_CORRECTNESS,
+    DEFAULT_VERIFY_CHECK_INPUT_CORRECTNESS,
     DEFAULT_VERIFY_CHECK_OUTPUT_CORRECTNESS,
 };
 
-use algebra::{Bls12_377, PairingEngine as Engine, BW6_761};
+use ark_bls12_377::Bls12_377;
+use ark_bw6_761::BW6_761;
+use ark_ec::pairing::Pairing as Engine;
 
 use gumdrop::Options;
 use std::{fs::read_to_string, process, time::Instant};

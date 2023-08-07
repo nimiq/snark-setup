@@ -129,8 +129,8 @@ pub fn batch_exp<C: AffineRepr>(
                 .for_each(|(chunk_bases, chunk_exps)| {
                     // &mut bases[..].cpu_gpu_scalar_mul(&powers_vec[..], 1 << 5, CPU_CHUNK_SIZE);
                     todo!() // PITODO
-                            // chunk_bases
-                            //     .batch_scalar_mul_in_place::<<C::ScalarField as PrimeField>::BigInt>(&mut chunk_exps[..], 5);
+                    // chunk_bases
+                    //     .batch_scalar_mul_in_place::<<C::ScalarField as PrimeField>::BigInt>(&mut chunk_exps[..], 5);
                 });
         }
     }
@@ -298,10 +298,8 @@ pub fn from_slice(bytes: &[u8]) -> [u8; 32] {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use algebra::{
-        bls12_377::Bls12_377,
-        bls12_381::{Bls12_381, Fr, G1Affine, G2Affine},
-    };
+    use ark_bls12_377::Bls12_377;
+    use ark_bls12_381::{Bls12_381, Fr, G1Affine, G2Affine};
 
     #[test]
     fn test_hash_to_g2() {
@@ -336,8 +334,8 @@ mod tests {
         let rng = &mut thread_rng();
 
         let s = Fr::rand(rng);
-        let g1 = G1Affine::prime_subgroup_generator();
-        let g2 = G2Affine::prime_subgroup_generator();
+        let g1 = G1Affine::generator();
+        let g2 = G2Affine::generator();
         let g1_s = g1.mul(s).into_affine();
         let g2_s = g2.mul(s).into_affine();
 
@@ -354,23 +352,17 @@ mod tests {
         let x = Fr::rand(rng);
         let mut acc = Fr::one();
         for _ in 0..100 {
-            v.push(G1Affine::prime_subgroup_generator().mul(acc).into_affine());
+            v.push(G1Affine::generator().mul(acc).into_affine());
             acc.mul_assign(&x);
         }
 
-        let gx = G2Affine::prime_subgroup_generator().mul(x).into_affine();
+        let gx = G2Affine::generator().mul(x).into_affine();
 
-        assert!(same_ratio::<Bls12_381>(
-            &power_pairs(&v),
-            &(G2Affine::prime_subgroup_generator(), gx)
-        ));
+        assert!(same_ratio::<Bls12_381>(&power_pairs(&v), &(G2Affine::generator(), gx)));
 
         v[1] = v[1].mul(Fr::rand(rng)).into_affine();
 
-        assert!(!same_ratio::<Bls12_381>(
-            &power_pairs(&v),
-            &(G2Affine::prime_subgroup_generator(), gx)
-        ));
+        assert!(!same_ratio::<Bls12_381>(&power_pairs(&v), &(G2Affine::generator(), gx)));
     }
 }
 

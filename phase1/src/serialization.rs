@@ -1,6 +1,6 @@
 use super::*;
 
-impl<'a, E: PairingEngine + Sync> Phase1<'a, E> {
+impl<'a, E: Pairing + Sync> Phase1<'a, E> {
     pub fn serialize(
         &self,
         output: &mut [u8],
@@ -56,9 +56,10 @@ mod tests {
     use super::*;
     use crate::helpers::testing::{generate_output, generate_random_accumulator};
 
-    use algebra::{Bls12_377, BW6_761};
+    use ark_bls12_377::Bls12_377;
+    use ark_bw6_761::BW6_761;
 
-    fn serialize_curve_test<E: PairingEngine + Sync>(compress: UseCompression, size: usize, batch: usize) {
+    fn serialize_curve_test<E: Pairing + Sync>(compress: UseCompression, size: usize, batch: usize) {
         for proving_system in &[ProvingSystem::Groth16, ProvingSystem::Marlin] {
             // Create a small accumulator with some random state.
             let parameters = Phase1Parameters::<E>::new_full(*proving_system, size, batch);
@@ -68,7 +69,7 @@ mod tests {
         }
     }
 
-    fn decompress_curve_test<E: PairingEngine>() {
+    fn decompress_curve_test<E: Pairing>() {
         for proving_system in &[ProvingSystem::Groth16, ProvingSystem::Marlin] {
             let parameters = Phase1Parameters::<E>::new_full(*proving_system, 2, 2);
             // generate a random input compressed accumulator

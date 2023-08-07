@@ -255,15 +255,22 @@ mod tests {
     use crate::UseCompression;
     use phase1::{
         helpers::testing::{
-            setup_verify, BatchExpMode as BatchExpModePhase1, CheckForCorrectness as CheckForCorrectnessPhase1,
+            setup_verify,
+            BatchExpMode as BatchExpModePhase1,
+            CheckForCorrectness as CheckForCorrectnessPhase1,
             UseCompression as UseCompressionPhase1,
         },
-        Phase1, Phase1Parameters, ProvingSystem,
+        Phase1,
+        Phase1Parameters,
+        ProvingSystem,
     };
 
-    use algebra::Bls12_377;
+    use ark_bls12_377::Bls12_377;
 
-    fn read_write_curve<E: Pairing>(powers: usize, prepared_phase1_size: usize, compressed: UseCompression) {
+    fn read_write_curve<E: Pairing>(powers: usize, prepared_phase1_size: usize, compressed: UseCompression)
+    where
+        E::G1Affine: Neg<Output = E::G1Affine>,
+    {
         fn compat(compression: UseCompression) -> UseCompressionPhase1 {
             match compression {
                 UseCompression::Yes => UseCompressionPhase1::Yes,

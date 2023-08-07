@@ -1,6 +1,6 @@
 use super::*;
 
-impl<'a, E: PairingEngine + Sync> Phase1<'a, E> {
+impl<'a, E: Pairing + Sync> Phase1<'a, E> {
     /// Verifies that the accumulator was transformed correctly
     /// given the `PublicKey` and the so-far hash of the accumulator.
     /// This verifies a single chunk and checks only that the points
@@ -131,7 +131,7 @@ impl<'a, E: PairingEngine + Sync> Phase1<'a, E> {
                     read_initial_elements::<E::G1Affine>(tau_g1, compressed_output, check_output_for_correctness)?;
 
                 // Check tau_g1[0] is the prime subgroup generator.
-                if after_g1[0] != E::G1Affine::prime_subgroup_generator() {
+                if after_g1[0] != E::G1Affine::generator() {
                     return Err(VerificationError::InvalidGenerator(ElementType::TauG1).into());
                 }
 
@@ -155,7 +155,7 @@ impl<'a, E: PairingEngine + Sync> Phase1<'a, E> {
                     read_initial_elements::<E::G2Affine>(tau_g2, compressed_output, check_output_for_correctness)?;
 
                 // Check tau_g2[0] is the prime subgroup generator.
-                if after_g2[0] != E::G2Affine::prime_subgroup_generator() {
+                if after_g2[0] != E::G2Affine::generator() {
                     return Err(VerificationError::InvalidGenerator(ElementType::TauG2).into());
                 }
 
@@ -672,8 +672,8 @@ impl<'a, E: PairingEngine + Sync> Phase1<'a, E> {
                                     .read_element(compressed_output, check_output_for_correctness)
                                     .expect("should have read g2 element");
                                 check_same_ratio::<E>(
-                                    &(g1, E::G1Affine::prime_subgroup_generator()),
-                                    &(E::G2Affine::prime_subgroup_generator(), g2),
+                                    &(g1, E::G1Affine::generator()),
+                                    &(E::G2Affine::generator(), g2),
                                     "G1<>G2",
                                 )
                                 .expect("should have checked same ratio");
@@ -700,7 +700,7 @@ impl<'a, E: PairingEngine + Sync> Phase1<'a, E> {
                                 .expect("should have checked same ratio");
                                 check_same_ratio::<E>(
                                     &(alpha_g1_elements[0], g1_alpha_check.0),
-                                    &(E::G2Affine::prime_subgroup_generator(), g2),
+                                    &(E::G2Affine::generator(), g2),
                                     "alpha consistent",
                                 )
                                 .expect("should have checked same ratio");
@@ -754,9 +754,10 @@ mod tests {
     use crate::helpers::testing::{generate_input, generate_new_challenge, generate_output};
     use setup_utils::calculate_hash;
 
-    use algebra::{Bls12_377, BW6_761};
+    use ark_bls12_377::Bls12_377;
+    use ark_bw6_761::BW6_761;
 
-    fn full_verification_test<E: PairingEngine>(
+    fn full_verification_test<E: Pairing>(
         total_size_in_log2: usize,
         batch: usize,
         compressed_input: UseCompression,
@@ -896,7 +897,7 @@ mod tests {
         }
     }
 
-    fn chunk_verification_test<E: PairingEngine>(
+    fn chunk_verification_test<E: Pairing>(
         total_size_in_log2: usize,
         batch: usize,
         compressed_input: UseCompression,
@@ -962,22 +963,24 @@ mod tests {
                         drop(private_key_1);
 
                         // Verify that the chunked contribution is correct.
-                        assert!(Phase1::verification(
-                            &input,
-                            &output_1,
-                            &mut new_challenge_1,
-                            &public_key_1,
-                            &digest,
-                            compressed_input,
-                            compressed_output,
-                            UseCompression::No,
-                            correctness,
-                            correctness,
-                            SubgroupCheckMode::Auto,
-                            false,
-                            &parameters,
-                        )
-                        .is_ok());
+                        assert!(
+                            Phase1::verification(
+                                &input,
+                                &output_1,
+                                &mut new_challenge_1,
+                                &public_key_1,
+                                &digest,
+                                compressed_input,
+                                compressed_output,
+                                UseCompression::No,
+                                correctness,
+                                correctness,
+                                SubgroupCheckMode::Auto,
+                                false,
+                                &parameters,
+                            )
+                            .is_ok()
+                        );
 
                         output_1
                     };
@@ -1015,31 +1018,13 @@ mod tests {
                     drop(private_key_2);
 
                     // Verify that the chunked contribution is correct.
-                    assert!(Phase1::verification(
-                        &output_1,
-                        &output_2,
-                        &mut new_challenge_2,
-                        &public_key_2,
-                        &digest,
-                        compressed_output,
-                        compressed_output,
-                        UseCompression::No,
-                        correctness,
-                        correctness,
-                        SubgroupCheckMode::Auto,
-                        false,
-                        &parameters,
-                    )
-                    .is_ok());
-
-                    // Verification will fail if the old hash is used.
-                    if parameters.chunk_index == 0 {
-                        assert!(Phase1::verification(
+                    assert!(
+                        Phase1::verification(
                             &output_1,
                             &output_2,
                             &mut new_challenge_2,
                             &public_key_2,
-                            &blank_hash(),
+                            &digest,
                             compressed_output,
                             compressed_output,
                             UseCompression::No,
@@ -1049,7 +1034,29 @@ mod tests {
                             false,
                             &parameters,
                         )
-                        .is_err());
+                        .is_ok()
+                    );
+
+                    // Verification will fail if the old hash is used.
+                    if parameters.chunk_index == 0 {
+                        assert!(
+                            Phase1::verification(
+                                &output_1,
+                                &output_2,
+                                &mut new_challenge_2,
+                                &public_key_2,
+                                &blank_hash(),
+                                compressed_output,
+                                compressed_output,
+                                UseCompression::No,
+                                correctness,
+                                correctness,
+                                SubgroupCheckMode::Auto,
+                                false,
+                                &parameters,
+                            )
+                            .is_err()
+                        );
                     }
 
                     /* Test is disabled for now as it doesn't always work and when it does, it panics.

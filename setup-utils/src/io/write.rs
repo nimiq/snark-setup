@@ -46,7 +46,7 @@ impl BatchSerializer for [u8] {
     fn init_element<G: AffineRepr>(&mut self, element: &G, compression: UseCompression) -> Result<()> {
         let element_size = buffer_size::<G>(compression);
         cfg_chunks_mut!(self, element_size)
-            .map(|mut buf| {
+            .map(|buf| {
                 (&mut buf[0..element_size]).write_element(element, compression)?;
                 Ok(())
             })
@@ -58,7 +58,7 @@ impl BatchSerializer for [u8] {
         let element_size = buffer_size::<G>(compression);
         cfg_chunks_mut!(self, element_size)
             .zip(elements)
-            .map(|(mut buf, element)| {
+            .map(|(buf, element)| {
                 (&mut buf[0..element_size]).write_element(element, compression)?;
                 Ok(())
             })

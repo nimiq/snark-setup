@@ -1,4 +1,4 @@
-use algebra::PairingEngine as Engine;
+use ark_ec::pairing::Pairing as Engine;
 use phase1::{Phase1, Phase1Parameters, PublicKey};
 use setup_utils::{calculate_hash, print_hash, CheckForCorrectness, SubgroupCheckMode, UseCompression};
 

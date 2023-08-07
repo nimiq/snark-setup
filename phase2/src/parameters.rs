@@ -3,9 +3,9 @@ use cfg_if::cfg_if;
 cfg_if! {
     if #[cfg(not(feature = "wasm"))] {
         use super::polynomial::eval;
-        use algebra::{ Zero };
-        use groth16::{Parameters, VerifyingKey};
-        use r1cs_core::SynthesisError;
+        use ark_std::Zero;
+        use ark_groth16::{ProvingKey, VerifyingKey};
+        use ark_relations::r1cs::SynthesisError;
     }
 }
 
@@ -14,15 +14,19 @@ use super::keypair::{hash_cs_pubkeys, Keypair, PublicKey};
 use crate::load_circuit::Matrices;
 use setup_utils::*;
 
-use algebra::{
-    AffineCurve, CanonicalDeserialize, CanonicalSerialize, Field, PairingEngine, ProjectiveCurve, SerializationError,
+use ark_ec::{pairing::Pairing, AffineRepr, CurveGroup};
+use ark_ff::Field;
+use ark_relations::{
+    lc,
+    r1cs::{ConstraintSynthesizer, ConstraintSystem, ConstraintSystemRef, SynthesisMode, Variable},
 };
-use r1cs_core::{lc, ConstraintSynthesizer, ConstraintSystem, ConstraintSystemRef, SynthesisMode, Variable};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use rand::Rng;
 
 use std::{
     fmt,
     io::{self, Read, Write},
+    ops::{Mul, Neg},
 };
 
 #[derive(Clone, PartialEq, Eq, Debug, Copy)]
@@ -34,13 +38,13 @@ pub enum Phase2ContributionMode {
 /// MPC parameters are just like Zexe's `Parameters` except, when serialized,
 /// they contain a transcript of contributions at the end, which can be verified.
 #[derive(Clone)]
-pub struct MPCParameters<E: PairingEngine> {
-    pub params: Parameters<E>,
+pub struct MPCParameters<E: Pairing> {
+    pub params: ProvingKey<E>,
     pub cs_hash: [u8; 64],
     pub contributions: Vec<PublicKey<E>>,
 }
 
-impl<E: PairingEngine> fmt::Debug for MPCParameters<E> {
+impl<E: Pairing> fmt::Debug for MPCParameters<E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
@@ -52,7 +56,7 @@ impl<E: PairingEngine> fmt::Debug for MPCParameters<E> {
     }
 }
 
-impl<E: PairingEngine + PartialEq> PartialEq for MPCParameters<E> {
+impl<E: Pairing + PartialEq> PartialEq for MPCParameters<E> {
     fn eq(&self, other: &MPCParameters<E>) -> bool {
         self.params == other.params
             && &self.cs_hash[..] == other.cs_hash.as_ref()
@@ -60,7 +64,10 @@ impl<E: PairingEngine + PartialEq> PartialEq for MPCParameters<E> {
     }
 }
 
-impl<E: PairingEngine> MPCParameters<E> {
+impl<E: Pairing> MPCParameters<E>
+where
+    E::G1Affine: Neg<Output = E::G1Affine>,
+{
     #[cfg(not(feature = "wasm"))]
     pub fn new_from_buffer(
         circuit: Matrices<E>,
@@ -89,7 +96,7 @@ impl<E: PairingEngine> MPCParameters<E> {
         phase1_size: usize,
         phase2_size: usize,
         chunk_size: usize,
-    ) -> Result<(MPCParameters<E>, Parameters<E>, Vec<MPCParameters<E>>)> {
+    ) -> Result<(MPCParameters<E>, ProvingKey<E>, Vec<MPCParameters<E>>)> {
         let params = Groth16Params::<E>::read(
             transcript,
             compressed,
@@ -101,7 +108,7 @@ impl<E: PairingEngine> MPCParameters<E> {
     }
 
     #[cfg(not(feature = "wasm"))]
-    fn process_matrix(xt: &[Vec<(E::Fr, usize)>], cs: &Matrices<E>) -> Vec<Vec<(E::Fr, usize)>> {
+    fn process_matrix(xt: &[Vec<(E::ScalarField, usize)>], cs: &Matrices<E>) -> Vec<Vec<(E::ScalarField, usize)>> {
         let mut xt_processed = vec![vec![]; cs.num_instance_variables + cs.num_witness_variables];
         for (constraint_num, vars) in xt.iter().enumerate() {
             for (coeff, var_index) in vars {
@@ -148,14 +155,14 @@ impl<E: PairingEngine> MPCParameters<E> {
             beta_g2: params.beta_g2,
             // Gamma_g2 is always 1, since we're implementing
             // BGM17, pg14 https://eprint.iacr.org/2017/1050.pdf
-            gamma_g2: E::G2Affine::prime_subgroup_generator(),
-            delta_g2: E::G2Affine::prime_subgroup_generator(),
+            gamma_g2: E::G2Affine::generator(),
+            delta_g2: E::G2Affine::generator(),
             gamma_abc_g1,
         };
-        let params = Parameters {
+        let params = ProvingKey {
             vk,
             beta_g1: params.beta_g1,
-            delta_g1: E::G1Affine::prime_subgroup_generator(),
+            delta_g1: E::G1Affine::generator(),
             a_query: a_g1,
             b_g1_query: b_g1,
             b_g2_query: b_g2,
@@ -176,7 +183,7 @@ impl<E: PairingEngine> MPCParameters<E> {
         cs: Matrices<E>,
         params: Groth16Params<E>,
         chunk_size: usize,
-    ) -> Result<(MPCParameters<E>, Parameters<E>, Vec<MPCParameters<E>>)> {
+    ) -> Result<(MPCParameters<E>, ProvingKey<E>, Vec<MPCParameters<E>>)> {
         // Evaluate the QAP against the coefficients created from phase 1
 
         let at = Self::process_matrix(&cs.a, &cs);
@@ -210,14 +217,14 @@ impl<E: PairingEngine> MPCParameters<E> {
             beta_g2: params.beta_g2,
             // Gamma_g2 is always 1, since we're implementing
             // BGM17, pg14 https://eprint.iacr.org/2017/1050.pdf
-            gamma_g2: E::G2Affine::prime_subgroup_generator(),
-            delta_g2: E::G2Affine::prime_subgroup_generator(),
+            gamma_g2: E::G2Affine::generator(),
+            delta_g2: E::G2Affine::generator(),
             gamma_abc_g1,
         };
-        let params = Parameters {
+        let params = ProvingKey {
             vk,
             beta_g1: params.beta_g1,
-            delta_g1: E::G1Affine::prime_subgroup_generator(),
+            delta_g1: E::G1Affine::generator(),
             a_query: a_g1,
             b_g1_query: b_g1,
             b_g2_query: b_g2,
@@ -225,7 +232,7 @@ impl<E: PairingEngine> MPCParameters<E> {
             l_query: l,
         };
 
-        let query_parameters = Parameters::<E> {
+        let query_parameters = ProvingKey::<E> {
             vk: params.vk.clone(),
             beta_g1: params.beta_g1.clone(),
             delta_g1: params.delta_g1.clone(),
@@ -259,7 +266,7 @@ impl<E: PairingEngine> MPCParameters<E> {
                 vec![]
             };
             let chunk_params = MPCParameters {
-                params: Parameters::<E> {
+                params: ProvingKey::<E> {
                     vk: params.vk.clone(),
                     beta_g1: params.beta_g1.clone(),
                     delta_g1: params.delta_g1.clone(),
@@ -278,7 +285,7 @@ impl<E: PairingEngine> MPCParameters<E> {
     }
 
     /// Get the underlying Groth16 `Parameters`
-    pub fn get_params(&self) -> &Parameters<E> {
+    pub fn get_params(&self) -> &ProvingKey<E> {
         &self.params
     }
 
@@ -332,8 +339,8 @@ impl<E: PairingEngine> MPCParameters<E> {
         ensure_unchanged(pubkey.delta_after, after.params.delta_g1, InvariantKind::DeltaG1)?;
         // Current parameters should have consistent delta in G2
         check_same_ratio::<E>(
-            &(E::G1Affine::prime_subgroup_generator(), pubkey.delta_after),
-            &(E::G2Affine::prime_subgroup_generator(), after.params.vk.delta_g2),
+            &(E::G1Affine::generator(), pubkey.delta_after),
+            &(E::G2Affine::generator(), after.params.vk.delta_g2),
             "Inconsistent G2 Delta",
         )?;
 
@@ -418,9 +425,9 @@ impl<E: PairingEngine> MPCParameters<E> {
         verify_transcript(before.cs_hash, &after.contributions)
     }
 
-    pub fn combine(queries: &Parameters<E>, mpcs: &[MPCParameters<E>]) -> Result<MPCParameters<E>> {
+    pub fn combine(queries: &ProvingKey<E>, mpcs: &[MPCParameters<E>]) -> Result<MPCParameters<E>> {
         let mut combined_mpc = MPCParameters::<E> {
-            params: Parameters::<E> {
+            params: ProvingKey::<E> {
                 vk: mpcs[0].params.vk.clone(),
                 beta_g1: mpcs[0].params.beta_g1.clone(),
                 delta_g1: mpcs[0].params.delta_g1.clone(),
@@ -444,10 +451,7 @@ impl<E: PairingEngine> MPCParameters<E> {
     /// Serialize these parameters. The serialized parameters
     /// can be read by Zexe's Groth16 `Parameters`.
     pub fn write<W: Write>(&self, mut writer: W, compressed: UseCompression) -> Result<()> {
-        match compressed {
-            UseCompression::No => self.params.serialize_uncompressed(&mut writer),
-            UseCompression::Yes => self.params.serialize(&mut writer),
-        }?;
+        self.params.serialize_with_mode(&mut writer, compressed)?;
         writer.write_all(&self.cs_hash)?;
         PublicKey::write_batch(&mut writer, &self.contributions)?;
 
@@ -462,16 +466,10 @@ impl<E: PairingEngine> MPCParameters<E> {
         check_subgroup_membership: bool,
         subgroup_check_mode: SubgroupCheckMode,
     ) -> Result<MPCParameters<E>> {
-        let params = match (compressed, check_correctness) {
-            (UseCompression::No, CheckForCorrectness::Full) => Parameters::deserialize_uncompressed(&mut reader),
-            (UseCompression::Yes, CheckForCorrectness::Full) => Parameters::deserialize(&mut reader),
-            (UseCompression::No, CheckForCorrectness::No) | (UseCompression::No, CheckForCorrectness::OnlyNonZero) => {
-                Parameters::deserialize_uncompressed_unchecked(&mut reader)
-            }
-            (UseCompression::Yes, CheckForCorrectness::No)
-            | (UseCompression::Yes, CheckForCorrectness::OnlyNonZero) => Parameters::deserialize_unchecked(&mut reader),
-            (..) => Err(SerializationError::InvalidData),
-        }?;
+        if matches!(check_correctness, CheckForCorrectness::OnlyInGroup) {
+            return Err(SerializationError::InvalidData.into());
+        }
+        let params = ProvingKey::deserialize_with_mode(&mut reader, compressed, check_correctness.into())?;
 
         // In the Full mode, this is already checked
         if check_subgroup_membership && check_correctness != CheckForCorrectness::Full {
@@ -538,7 +536,7 @@ impl<E: PairingEngine> MPCParameters<E> {
         check_correctness: CheckForCorrectness,
         check_subgroup_membership: bool,
         subgroup_check_mode: SubgroupCheckMode,
-    ) -> Result<Parameters<E>> {
+    ) -> Result<ProvingKey<E>> {
         // vk
         let alpha_g1: E::G1Affine = reader.read_element(compressed, check_correctness)?;
         let beta_g2: E::G2Affine = reader.read_element(compressed, check_correctness)?;
@@ -562,7 +560,7 @@ impl<E: PairingEngine> MPCParameters<E> {
         let h_query: Vec<E::G1Affine> = read_vec(&mut reader, compressed, check_correctness)?;
         let l_query: Vec<E::G1Affine> = read_vec(&mut reader, compressed, check_correctness)?;
 
-        let params = Parameters::<E> {
+        let params = ProvingKey::<E> {
             vk: VerifyingKey::<E> {
                 alpha_g1,
                 beta_g2,
@@ -640,9 +638,9 @@ pub fn ensure_unchanged<T: PartialEq>(before: T, after: T, kind: InvariantKind) 
     Ok(())
 }
 
-pub fn verify_transcript<E: PairingEngine>(cs_hash: [u8; 64], contributions: &[PublicKey<E>]) -> Result<Vec<[u8; 64]>> {
+pub fn verify_transcript<E: Pairing>(cs_hash: [u8; 64], contributions: &[PublicKey<E>]) -> Result<Vec<[u8; 64]>> {
     let mut result = vec![];
-    let mut old_delta = E::G1Affine::prime_subgroup_generator();
+    let mut old_delta = E::G1Affine::generator();
     for (i, pubkey) in contributions.iter().enumerate() {
         let hash = hash_cs_pubkeys(cs_hash, &contributions[0..i], pubkey.s, pubkey.s_delta);
         ensure_unchanged(&pubkey.transcript[..], &hash.as_ref()[..], InvariantKind::Transcript)?;
@@ -671,9 +669,9 @@ pub fn verify_transcript<E: PairingEngine>(cs_hash: [u8; 64], contributions: &[P
     Ok(result)
 }
 
-pub fn circuit_to_qap<Zexe: PairingEngine, C: ConstraintSynthesizer<Zexe::Fr>>(
+pub fn circuit_to_qap<Zexe: Pairing, C: ConstraintSynthesizer<Zexe::ScalarField>>(
     circuit: C,
-) -> Result<ConstraintSystemRef<Zexe::Fr>> {
+) -> Result<ConstraintSystemRef<Zexe::ScalarField>> {
     // This is a Groth16 keypair assembly
     let cs = ConstraintSystem::new_ref();
     cs.set_mode(SynthesisMode::Setup);
@@ -691,10 +689,10 @@ pub fn circuit_to_qap<Zexe: PairingEngine, C: ConstraintSynthesizer<Zexe::Fr>>(
 }
 
 #[allow(unused)]
-fn hash_params<E: PairingEngine>(params: &Parameters<E>) -> Result<[u8; 64]> {
+fn hash_params<E: Pairing>(params: &ProvingKey<E>) -> Result<[u8; 64]> {
     let sink = io::sink();
     let mut sink = HashWriter::new(sink);
-    params.serialize(&mut sink)?;
+    params.serialize_compressed(&mut sink)?;
     let h = sink.into_hash();
     let mut cs_hash = [0; 64];
     cs_hash.copy_from_slice(h.as_ref());
@@ -711,7 +709,7 @@ mod tests {
     use phase1::{helpers::testing::setup_verify, Phase1, Phase1Parameters, ProvingSystem};
     use setup_utils::{Groth16Params, UseCompression};
 
-    use algebra::Bls12_377;
+    use ark_bls12_377::Bls12_377;
 
     use rand::thread_rng;
     use tracing_subscriber::{filter::EnvFilter, fmt::Subscriber};
@@ -721,7 +719,10 @@ mod tests {
         serialize_ceremony_curve::<Bls12_377>()
     }
 
-    fn serialize_ceremony_curve<E: PairingEngine + PartialEq>() {
+    fn serialize_ceremony_curve<E: Pairing + PartialEq>()
+    where
+        E::G1Affine: Neg<Output = E::G1Affine>,
+    {
         let mpc = generate_ceremony::<E>();
 
         let mut writer = vec![];
@@ -746,7 +747,10 @@ mod tests {
 
     // if there has been no contribution
     // then checking with itself should fail
-    fn verify_with_self_fails_curve<E: PairingEngine>() {
+    fn verify_with_self_fails_curve<E: Pairing>()
+    where
+        E::G1Affine: Neg<Output = E::G1Affine>,
+    {
         let mpc = generate_ceremony::<E>();
         let err = mpc.verify(&mpc);
         // we handle the error like this because [u8; 64] does not implement
@@ -763,7 +767,10 @@ mod tests {
     }
 
     // contributing once and comparing with the previous step passes
-    fn verify_curve<E: PairingEngine>() {
+    fn verify_curve<E: Pairing>()
+    where
+        E::G1Affine: Neg<Output = E::G1Affine>,
+    {
         Subscriber::builder()
             .with_target(false)
             .with_env_filter(EnvFilter::from_default_env())
@@ -862,7 +869,10 @@ mod tests {
 
     // helper which generates the initial phase 2 params
     // for the TestCircuit
-    fn generate_ceremony<E: PairingEngine>() -> MPCParameters<E> {
+    fn generate_ceremony<E: Pairing>() -> MPCParameters<E>
+    where
+        E::G1Affine: Neg<Output = E::G1Affine>,
+    {
         // the phase2 params are generated correctly,
         // even though the powers of tau are >> the circuit size
         let powers = 5;

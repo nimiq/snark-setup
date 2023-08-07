@@ -129,10 +129,10 @@ pub fn check_subgroup<C: AffineRepr>(
         (_, SubgroupCheckMode::No) => true,
         (true, SubgroupCheckMode::Auto) | (_, SubgroupCheckMode::Batched) => {
             todo!() // PITODO
-                    // match batch_verify_in_subgroup(elements, SECURITY_PARAM, &mut rand::thread_rng()) {
-                    //     Ok(()) => true,
-                    //     _ => false,
-                    // }
+            // match batch_verify_in_subgroup(elements, SECURITY_PARAM, &mut rand::thread_rng()) {
+            //     Ok(()) => true,
+            //     _ => false,
+            // }
         }
         (false, SubgroupCheckMode::Auto) | (_, SubgroupCheckMode::Direct) => {
             // PITODO: double-check

@@ -1,7 +1,7 @@
 use crate::{ContributionMode, Phase1Parameters, ProvingSystem};
 use setup_utils::{BatchDeserializer, BatchSerializer, *};
 
-use algebra::{AffineCurve, PairingEngine};
+use ark_ec::{pairing::Pairing, AffineRepr};
 
 use itertools::{Itertools, MinMaxResult};
 
@@ -20,7 +20,7 @@ type SplitBuf<'a> = (&'a [u8], &'a [u8], &'a [u8], &'a [u8], &'a [u8]);
 /// Helper function to iterate over the accumulator in chunks.
 /// `action` will perform an action on the chunk
 pub(crate) fn iter_chunk(
-    parameters: &Phase1Parameters<impl PairingEngine>,
+    parameters: &Phase1Parameters<impl Pairing>,
     mut action: impl FnMut(usize, usize) -> Result<()>,
 ) -> Result<()> {
     // Determine the range to iterate over.
@@ -74,7 +74,7 @@ pub(crate) fn iter_chunk(
 
 /// Takes a buffer, reads the group elements in it, exponentiates them to the
 /// provided `powers` and maybe to the `coeff`, and then writes them back
-pub(crate) fn apply_powers<C: AffineCurve>(
+pub(crate) fn apply_powers<C: AffineRepr>(
     (output, output_compressed): Output,
     (input, input_compressed, check_input_for_correctness): Input,
     (start, end): (usize, usize),
@@ -100,7 +100,7 @@ pub(crate) fn apply_powers<C: AffineCurve>(
 /// Splits the full buffer in 5 non overlapping mutable slice for a given chunk and batch size.
 /// Each slice corresponds to the group elements in the following order
 /// [TauG1, TauG2, AlphaG1, BetaG1, BetaG2]
-pub(crate) fn split_at_chunk<'a, E: PairingEngine>(
+pub(crate) fn split_at_chunk<'a, E: Pairing>(
     buffer: &'a [u8],
     parameters: &'a Phase1Parameters<E>,
     compressed: UseCompression,
@@ -169,7 +169,7 @@ pub(crate) fn split_at_chunk<'a, E: PairingEngine>(
 /// Splits the full buffer in 5 non overlapping mutable slice for a given chunk and batch size.
 /// Each slice corresponds to the group elements in the following order
 /// [TauG1, TauG2, AlphaG1, BetaG1, BetaG2]
-pub(crate) fn split_at_chunk_mut<'a, E: PairingEngine>(
+pub(crate) fn split_at_chunk_mut<'a, E: Pairing>(
     buffer: &'a mut [u8],
     parameters: &'a Phase1Parameters<E>,
     compressed: UseCompression,
@@ -243,7 +243,7 @@ pub(crate) fn split_at_chunk_mut<'a, E: PairingEngine>(
 /// Splits the full buffer in 5 non overlapping mutable slice.
 /// Each slice corresponds to the group elements in the following order
 /// [TauG1, TauG2, AlphaG1, BetaG1, BetaG2]
-pub(crate) fn split_mut<'a, E: PairingEngine>(
+pub(crate) fn split_mut<'a, E: Pairing>(
     buffer: &'a mut [u8],
     parameters: &'a Phase1Parameters<E>,
     compressed: UseCompression,
@@ -290,7 +290,7 @@ pub(crate) fn split_mut<'a, E: PairingEngine>(
 /// Splits the full buffer in 5 non overlapping immutable slice.
 /// Each slice corresponds to the group elements in the following order
 /// [TauG1, TauG2, AlphaG1, BetaG1, BetaG2]
-pub(crate) fn split<'a, E: PairingEngine>(
+pub(crate) fn split<'a, E: Pairing>(
     buffer: &'a [u8],
     parameters: &Phase1Parameters<E>,
     compressed: UseCompression,

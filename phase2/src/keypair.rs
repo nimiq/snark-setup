@@ -2,21 +2,24 @@
 //!
 //! A Groth16 keypair. Generate one with the Keypair::new method.
 //! Dispose of the private key ASAP once it's been used.
+use ark_serialize::CanonicalSerialize;
 use setup_utils::{hash_to_g2, CheckForCorrectness, Deserializer, HashWriter, Result, Serializer, UseCompression};
 
-use algebra::{AffineCurve, CanonicalSerialize, ConstantSerializedSize, PairingEngine, ProjectiveCurve, UniformRand};
+use ark_ec::{pairing::Pairing, CurveGroup};
+use ark_std::UniformRand;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use rand::Rng;
 use std::{
     fmt,
     io::{self, Read, Write},
+    ops::Mul,
 };
 
 /// This needs to be destroyed by at least one participant
 /// for the final parameters to be secure.
-pub struct PrivateKey<E: PairingEngine> {
-    pub delta: E::Fr,
+pub struct PrivateKey<E: Pairing> {
+    pub delta: E::ScalarField,
 }
 
 pub const PUBKEY_SIZE: usize = 544; // 96 * 2 + 48 * 2 * 3 + 64, assuming uncompressed elements
@@ -24,7 +27,7 @@ pub const PUBKEY_SIZE: usize = 544; // 96 * 2 + 48 * 2 * 3 + 64, assuming uncomp
 /// This allows others to verify that you contributed. The hash produced
 /// by `MPCParameters::contribute` is just a BLAKE2b hash of this object.
 #[derive(Clone)]
-pub struct PublicKey<E: PairingEngine> {
+pub struct PublicKey<E: Pairing> {
     /// This is the delta (in G1) after the transformation, kept so that we
     /// can check correctness of the public keys without having the entire
     /// interstitial parameters for each contribution.
@@ -43,7 +46,7 @@ pub struct PublicKey<E: PairingEngine> {
     pub transcript: [u8; 64],
 }
 
-impl<E: PairingEngine> PublicKey<E> {
+impl<E: Pairing> PublicKey<E> {
     /// Returns the Blake2b hash of the public key
     pub fn hash(&self) -> [u8; 64] {
         let sink = io::sink();
@@ -73,7 +76,7 @@ impl<E: PairingEngine> PublicKey<E> {
     }
 
     pub fn size() -> usize {
-        3 * E::G1Affine::UNCOMPRESSED_SIZE + E::G2Affine::UNCOMPRESSED_SIZE + 64
+        3 * E::G1Affine::default().uncompressed_size() + E::G2Affine::default().uncompressed_size() + 64
     }
 
     /// Serializes the key's **uncompressed** points to the provided
@@ -108,23 +111,23 @@ impl<E: PairingEngine> PublicKey<E> {
 }
 
 /// A keypair for Groth16
-pub struct Keypair<E: PairingEngine> {
+pub struct Keypair<E: Pairing> {
     /// Private key which contains the toxic waste
     pub private_key: PrivateKey<E>,
     pub public_key: PublicKey<E>,
 }
 
-impl<E: PairingEngine> Keypair<E> {
+impl<E: Pairing> Keypair<E> {
     /// Compute a keypair, given the current parameters. Keypairs
     /// cannot be reused for multiple contributions or contributions
     /// in different parameters.
     pub fn new(delta_g1: E::G1Affine, cs_hash: [u8; 64], contributions: &[PublicKey<E>], rng: &mut impl Rng) -> Self {
         // Sample random delta -- THIS MUST BE DESTROYED
-        let delta: E::Fr = E::Fr::rand(rng);
+        let delta: E::ScalarField = E::ScalarField::rand(rng);
         let delta_after = delta_g1.mul(delta).into_affine();
 
         // Compute delta s-pair in G1
-        let s = E::G1Projective::rand(rng).into_affine();
+        let s = E::G1::rand(rng).into_affine();
         let s_delta = s.mul(delta).into_affine();
 
         // Get the transcript
@@ -149,7 +152,7 @@ impl<E: PairingEngine> Keypair<E> {
 /// Returns the transcript hash so far.
 ///
 /// Internally calculates: `H(cs_hash | <contributions> | s | s_delta)`
-pub fn hash_cs_pubkeys<E: PairingEngine>(
+pub fn hash_cs_pubkeys<E: Pairing>(
     cs_hash: [u8; 64],
     contributions: &[PublicKey<E>],
     s: E::G1Affine,
@@ -175,7 +178,7 @@ pub fn hash_cs_pubkeys<E: PairingEngine>(
     transcript
 }
 
-impl<E: PairingEngine> fmt::Debug for PublicKey<E> {
+impl<E: Pairing> fmt::Debug for PublicKey<E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
@@ -189,7 +192,7 @@ impl<E: PairingEngine> fmt::Debug for PublicKey<E> {
     }
 }
 
-impl<E: PairingEngine> PartialEq for PublicKey<E> {
+impl<E: Pairing> PartialEq for PublicKey<E> {
     fn eq(&self, other: &PublicKey<E>) -> bool {
         self.delta_after == other.delta_after
             && self.s == other.s
@@ -202,7 +205,8 @@ impl<E: PairingEngine> PartialEq for PublicKey<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use algebra::Bls12_377;
+    use ark_bls12_377::Bls12_377;
+    use ark_ec::AffineRepr;
     use rand::thread_rng;
 
     #[test]
@@ -210,9 +214,9 @@ mod tests {
         serialization_curve::<Bls12_377>()
     }
 
-    fn serialization_curve<E: PairingEngine>() {
+    fn serialization_curve<E: Pairing>() {
         let mut rng = thread_rng();
-        let delta_g1 = E::G1Affine::prime_subgroup_generator();
+        let delta_g1 = E::G1Affine::generator();
 
         let keypair = Keypair::<E>::new(delta_g1, [0; 64], &[], &mut rng);
         let pubkey = keypair.public_key;

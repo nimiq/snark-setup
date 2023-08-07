@@ -1,9 +1,8 @@
 use crate::Phase1Parameters;
 use setup_utils::{Error, UseCompression};
 
-use algebra::{CanonicalDeserialize, CanonicalSerialize, PairingEngine, SerializationError};
-
-use std::io::{Read, Write};
+use ark_ec::pairing::Pairing;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 
 /// Contains terms of the form (s<sub>1</sub>, s<sub>1</sub><sup>x</sup>, H(s<sub>1</sub><sup>x</sup>)<sub>2</sub>, H(s<sub>1</sub><sup>x</sup>)<sub>2</sub><sup>x</sup>)
 /// for all x in τ, α and β, and some s chosen randomly by its creator. The function H "hashes into" the group G2. No points in the public key may be the identity.
@@ -13,7 +12,7 @@ use std::io::{Read, Write};
 ///
 /// It is necessary to verify `same_ratio`((s<sub>1</sub>, s<sub>1</sub><sup>x</sup>), (H(s<sub>1</sub><sup>x</sup>)<sub>2</sub>, H(s<sub>1</sub><sup>x</sup>)<sub>2</sub><sup>x</sup>)).
 #[derive(Eq, Debug, CanonicalSerialize, CanonicalDeserialize)]
-pub struct PublicKey<E: PairingEngine> {
+pub struct PublicKey<E: Pairing> {
     pub tau_g1: (E::G1Affine, E::G1Affine),
     pub alpha_g1: (E::G1Affine, E::G1Affine),
     pub beta_g1: (E::G1Affine, E::G1Affine),
@@ -22,7 +21,7 @@ pub struct PublicKey<E: PairingEngine> {
     pub beta_g2: E::G2Affine,
 }
 
-impl<E: PairingEngine> PartialEq for PublicKey<E> {
+impl<E: Pairing> PartialEq for PublicKey<E> {
     fn eq(&self, other: &PublicKey<E>) -> bool {
         self.tau_g1.0 == other.tau_g1.0
             && self.tau_g1.1 == other.tau_g1.1
@@ -36,7 +35,7 @@ impl<E: PairingEngine> PartialEq for PublicKey<E> {
     }
 }
 
-impl<E: PairingEngine> PublicKey<E> {
+impl<E: Pairing> PublicKey<E> {
     /// Writes the key to the memory map (takes into account offsets)
     pub fn write(
         &self,
@@ -49,7 +48,7 @@ impl<E: PairingEngine> PublicKey<E> {
             UseCompression::No => parameters.accumulator_size,
         };
         // Write the public key after the provided position
-        self.serialize(&mut output_map[position..].as_mut())?;
+        self.serialize_compressed(&mut output_map[position..].as_mut())?;
 
         Ok(())
     }
@@ -65,6 +64,6 @@ impl<E: PairingEngine> PublicKey<E> {
             UseCompression::No => parameters.accumulator_size,
         };
         // The public key is written after the provided position
-        Ok(PublicKey::deserialize(&mut &input_map[position..])?)
+        Ok(PublicKey::deserialize_compressed(&mut &input_map[position..])?)
     }
 }

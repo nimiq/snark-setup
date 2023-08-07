@@ -12,7 +12,7 @@ description = "Core logic for Phase 1"
 homepage = "https://github.com/celo-org/snark-setup"
 repository = "https://github.com/celo-org/snark-setup"
 license = "MIT/Apache-2.0"
-edition = "2018"
+edition = "2021"
 
 [[bench]]
 name = "phase1"
@@ -22,54 +22,51 @@ required-features = ["benchmark"]
 [dependencies]
 setup-utils = { path = "../setup-utils", default-features = false }
 
-algebra = { git = "https://github.com/scipr-lab/zexe", version = "0.1.1-alpha.0", package = "algebra", features = [
-    "derive",
-] }
-algebra_core = { git = "https://github.com/scipr-lab/zexe", version = "0.1.1-alpha.0", package = "algebra-core", optional = true, features = [
-    "derive",
-] }
-fft = { git = "https://github.com/scipr-lab/zexe", version = "0.1.1-alpha.0", package = "ff-fft", default-features = false }
+ark-ec = { version = "0.4", features = ["std"] }
+ark-ff = { version = "0.4", features = ["std"] }
+ark-serialize = { version = "0.4", features = ["std"] }
+ark-std = { version = "0.4", features = ["std"] }
 
-cfg-if = { version = "0.1.10" }
-criterion = { version = "0.3", optional = true }
-itertools = { version = "0.8.0" }
-rand = { version = "0.7" }
-rayon = { version = "1.3.0", optional = true }
-tracing = { version = "0.1.17" }
+cfg-if = { version = "1.0" }
+criterion = { version = "0.5", optional = true }
+itertools = { version = "0.11" }
+rand = { version = "0.8" }
+rayon = { version = "1.7", optional = true }
+tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.2" }
 derivative = { version = "2", features = ["use_core"] }
-bench_utils = { git = "https://github.com/scipr-lab/zexe", version = "0.1.1-alpha.0", package = "bench-utils" }
 
 [dev-dependencies]
 phase1 = { path = "./", features = ["testing"] }
 
-algebra = { git = "https://github.com/scipr-lab/zexe", version = "0.1.1-alpha.0", package = "algebra", features = [
-    "full",
-    "derive",
-] }
-r1cs_core = { git = "https://github.com/scipr-lab/zexe", version = "0.1.1-alpha.0", package = "r1cs-core" }
-marlin = { git = "https://github.com/scipr-lab/marlin", rev = "b7b4be4" }
-poly-commit = { git = "https://github.com/scipr-lab/poly-commit", rev = "efff1c1" }
+ark-bls12-377 = { version = "0.4", features = ["std"] }
+ark-bls12-381 = { version = "0.4", features = ["std"] }
+ark-bw6-761 = { version = "0.4", features = ["std"] }
+ark-relations = { version = "0.4", features = ["std"] }
+ark-marlin = { version = "0.3", features = ["std"] }
+ark-poly-commit = { version = "0.4", features = ["std"] }
+ark-poly = { version = "0.4", features = ["std"] }
+ark-crypto-primitives = { version = "0.4", features = ["std"] }
 
-anyhow = { version = "1.0.31" }
-blake2 = { version = "0.8", default-features = false }
-num-traits = { version = "0.2.12" }
-rusty-hook = { version = "0.11.2" }
+anyhow = { version = "1.0" }
+blake2 = { version = "0.9", default-features = false }
+num-traits = { version = "0.2" }
+rusty-hook = { version = "0.11" }
 
 [features]
 default = ["cli"]
 cli = ["parallel", "setup-utils/cli"]
 parallel = [
+    "ark-ec/parallel",
+    "ark-ff/parallel",
+    "ark-std/parallel",
     "rayon",
     "setup-utils/parallel",
-    "algebra/parallel",
-    "algebra_core/parallel",
-    "fft/parallel",
 ]
 wasm = ["setup-utils/wasm"]
 
 benchmark = ["criterion"]
-testing = ["parallel", "algebra_core", "bench_utils/print-trace"]
+testing = ["parallel"]
 
 [[test]]
 name = "marlin"

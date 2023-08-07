@@ -1,6 +1,7 @@
 use setup_utils::{BatchDeserializer, BatchSerializer, UseCompression};
 
-use algebra::{AffineCurve, Bls12_377, PairingEngine};
+use ark_bls12_377::Bls12_377;
+use ark_ec::{pairing::Pairing, AffineRepr};
 
 use criterion::{criterion_group, criterion_main, Criterion, Throughput};
 
@@ -14,7 +15,7 @@ use criterion::{criterion_group, criterion_main, Criterion, Throughput};
 ///   the bottleneck for reading compressed elements is the subgroup check and the calculation of
 ///   `y`, allowing for more gains via the parallelization. Deserializing uncompressed elements has
 ///   no computational bottleneck, hence the parallelism ends up introducing more overhead than benefit
-fn read<C: AffineCurve>(c: &mut Criterion, el_type: &str) {
+fn read<C: AffineRepr>(c: &mut Criterion, el_type: &str) {
     let mut group = c.benchmark_group(format!("read_batched_{}", el_type));
     group.sample_size(10);
     let els = (10..14).map(|i| 2u32.pow(i) as usize).collect::<Vec<usize>>();
@@ -40,7 +41,7 @@ fn read<C: AffineCurve>(c: &mut Criterion, el_type: &str) {
 /// The trait's write_batch uses a serial iterator for buffers up to 512 elements (heuristic)
 /// and then switches to parallel
 /// We observe that after ~512 element buffers, the parallel version starts to take over
-fn write<C: AffineCurve>(c: &mut Criterion, el_type: &str) {
+fn write<C: AffineRepr>(c: &mut Criterion, el_type: &str) {
     let mut group = c.benchmark_group(format!("write_batched_{}", el_type));
     let els = (10..14).map(|i| 2u32.pow(i) as usize).collect::<Vec<usize>>();
     group.sample_size(10);
@@ -58,7 +59,7 @@ fn write<C: AffineCurve>(c: &mut Criterion, el_type: &str) {
     group.finish()
 }
 
-fn read_curve<E: PairingEngine>(c: &mut Criterion) {
+fn read_curve<E: Pairing>(c: &mut Criterion) {
     read::<E::G1Affine>(c, "g1");
     read::<E::G2Affine>(c, "g2");
 }
@@ -67,7 +68,7 @@ fn read_bls12_377(c: &mut Criterion) {
     read_curve::<Bls12_377>(c);
 }
 
-fn write_curve<E: PairingEngine>(c: &mut Criterion) {
+fn write_curve<E: Pairing>(c: &mut Criterion) {
     write::<E::G1Affine>(c, "g1");
     write::<E::G2Affine>(c, "g2");
 }

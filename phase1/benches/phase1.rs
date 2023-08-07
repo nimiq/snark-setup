@@ -1,10 +1,12 @@
 use phase1::{
     helpers::testing::{generate_input, setup_verify},
-    Phase1, Phase1Parameters, ProvingSystem,
+    Phase1,
+    Phase1Parameters,
+    ProvingSystem,
 };
 use setup_utils::*;
 
-use algebra::Bls12_377;
+use ark_bls12_377::Bls12_377;
 
 use criterion::{criterion_group, criterion_main, Criterion, Throughput};
 use rand::thread_rng;
@@ -79,6 +81,7 @@ fn benchmark_computation(c: &mut Criterion) {
                             compressed_input,
                             compressed_output,
                             CheckForCorrectness::Full,
+                            BatchExpMode::Auto,
                             &private_key,
                             &parameters,
                         )
@@ -116,8 +119,13 @@ fn benchmark_verification(c: &mut Criterion) {
             for proof_system in proving_system {
                 let parameters = Phase1Parameters::<Bls12_377>::new_full(proof_system, power, batch);
 
-                let (input, output, pubkey, current_accumulator_hash) =
-                    setup_verify(*compressed_input, correctness, *compressed_output, &parameters);
+                let (input, output, pubkey, current_accumulator_hash) = setup_verify(
+                    *compressed_input,
+                    correctness,
+                    *compressed_output,
+                    BatchExpMode::Auto,
+                    &parameters,
+                );
 
                 group.throughput(Throughput::Elements(power as u64));
                 group.bench_with_input(
@@ -134,6 +142,8 @@ fn benchmark_verification(c: &mut Criterion) {
                                 *compressed_output,
                                 correctness,
                                 correctness,
+                                CheckForCorrectness::Full,
+                                CheckForCorrectness::Full,
                                 SubgroupCheckMode::Auto,
                                 true,
                                 &parameters,
