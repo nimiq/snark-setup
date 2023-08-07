@@ -1,12 +1,16 @@
-use algebra::{Field, PairingEngine};
-use r1cs_core::{lc, ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
+use ark_ec::pairing::Pairing;
+use ark_ff::Field;
+use ark_relations::{
+    lc,
+    r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError},
+};
 
 // circuit proving knowledge of a square root
 // when generating the Setup, the element inside is None
 #[derive(Clone, Debug)]
-pub struct TestCircuit<E: PairingEngine>(pub Option<E::Fr>);
-impl<E: PairingEngine> ConstraintSynthesizer<E::Fr> for TestCircuit<E> {
-    fn generate_constraints(self, cs: ConstraintSystemRef<E::Fr>) -> std::result::Result<(), SynthesisError> {
+pub struct TestCircuit<E: Pairing>(pub Option<E::ScalarField>);
+impl<E: Pairing> ConstraintSynthesizer<E::ScalarField> for TestCircuit<E> {
+    fn generate_constraints(self, cs: ConstraintSystemRef<E::ScalarField>) -> std::result::Result<(), SynthesisError> {
         // allocate a private input `x`
         // this can be made public with `alloc_input`, which would then require
         // that the verifier provides it
@@ -29,8 +33,8 @@ impl<E: PairingEngine> ConstraintSynthesizer<E::Fr> for TestCircuit<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use algebra::Bls12_377;
-    use groth16::{create_random_proof, generate_random_parameters, prepare_verifying_key, verify_proof};
+    use ark_bls12_377::Bls12_377;
+    use ark_groth16::{prepare_verifying_key, Groth16};
 
     // no need to run these tests, they're just added as a guideline for how to
     // consume the circuit
@@ -39,28 +43,28 @@ mod tests {
         test_square_root_curve::<Bls12_377>()
     }
 
-    fn test_square_root_curve<E: PairingEngine>() {
+    fn test_square_root_curve<E: Pairing>() {
         // This may not be cryptographically safe, use
         // `OsRng` (for example) in production software.
         let rng = &mut rand::thread_rng();
         // Create parameters for our circuit
         let params = {
             let c = TestCircuit::<E>(None);
-            generate_random_parameters::<E, _, _>(c, rng).unwrap()
+            Groth16::<E>::generate_random_parameters_with_reduction(c, rng).unwrap()
         };
         let pvk = prepare_verifying_key(&params.vk);
 
         // we know the square root of 25 -> 5
-        let out = <E::Fr as From<u64>>::from(25);
-        let input = <E::Fr as From<u64>>::from(5);
+        let out = <E::ScalarField as From<u64>>::from(25);
+        let input = <E::ScalarField as From<u64>>::from(5);
 
         // Prover instantiates the circuit and creates a proof
         // with his RNG
         let c = TestCircuit::<E>(Some(input));
-        let proof = create_random_proof(c, &params, rng).unwrap();
+        let proof = Groth16::<E>::create_random_proof_with_reduction(c, &params, rng).unwrap();
 
         // Verifier only needs to know 25 (the output, aka public input),
         // the vk and the proof!
-        assert!(verify_proof(&pvk, &proof, &[out]).unwrap());
+        assert!(Groth16::<E>::verify_proof(&pvk, &proof, &[out]).unwrap());
     }
 }

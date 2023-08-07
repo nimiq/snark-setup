@@ -1,7 +1,7 @@
 use phase1::{Phase1, Phase1Parameters};
-use setup_utils::UseCompression;
+use setup_utils::{BatchGroupArithmetic, UseCompression};
 
-use algebra::PairingEngine as Engine;
+use ark_ec::pairing::Pairing as Engine;
 
 use memmap::*;
 use std::{
@@ -17,7 +17,10 @@ pub fn combine<T: Engine + Sync>(
     response_list_filename: &str,
     combined_filename: &str,
     parameters: &Phase1Parameters<T>,
-) {
+) where
+    T::G1Affine: BatchGroupArithmetic,
+    T::G2Affine: BatchGroupArithmetic,
+{
     info!("Will combine contributions",);
 
     let mut readers = vec![];

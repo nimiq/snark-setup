@@ -1,15 +1,19 @@
 use setup_utils::converters::CurveKind;
 
-use algebra::{Bls12_377, PairingEngine as Engine, BW6_761};
+use ark_bls12_377::Bls12_377;
+use ark_bw6_761::BW6_761;
+use ark_ec::pairing::Pairing as Engine;
 
 use gumdrop::Options;
 use phase2_cli::{combine, contribute, new_challenge, verify, Command, Phase2Opts};
 use setup_utils::{
-    derive_rng_from_seed, upgrade_correctness_check_config, CheckForCorrectness,
-    DEFAULT_CONTRIBUTE_CHECK_INPUT_CORRECTNESS, DEFAULT_VERIFY_CHECK_INPUT_CORRECTNESS,
+    derive_rng_from_seed,
+    upgrade_correctness_check_config,
+    CheckForCorrectness,
+    DEFAULT_CONTRIBUTE_CHECK_INPUT_CORRECTNESS,
+    DEFAULT_VERIFY_CHECK_INPUT_CORRECTNESS,
 };
-use std::fs::read_to_string;
-use std::{process, time::Instant};
+use std::{fs::read_to_string, process, time::Instant};
 use tracing::{error, info};
 use tracing_subscriber::{
     filter::EnvFilter,

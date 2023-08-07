@@ -13,12 +13,22 @@ pub use groth16_utils::Groth16Params;
 
 mod elements;
 pub use elements::{
-    check_subgroup, deserialize, read_vec, serialize, BatchExpMode, CheckForCorrectness, ElementType,
-    SubgroupCheckMode, UseCompression,
+    check_subgroup,
+    deserialize,
+    read_vec,
+    serialize,
+    BatchExpMode,
+    CheckForCorrectness,
+    ElementType,
+    SubgroupCheckMode,
+    UseCompression,
 };
 
 mod helpers;
 pub use helpers::*;
+
+mod batch;
+pub use batch::*;
 
 mod io;
 pub use io::{buffer_size, BatchDeserializer, BatchSerializer, Deserializer, Serializer};
@@ -32,5 +42,5 @@ pub use seed::derive_rng_from_seed;
 pub use blake2::digest::generic_array::GenericArray;
 pub use typenum::U64;
 
-pub use fft::{cfg_chunks, cfg_into_iter, cfg_iter_mut};
+pub use ark_std::{cfg_chunks, cfg_into_iter, cfg_iter_mut};
 pub mod converters;

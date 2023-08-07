@@ -1,16 +1,24 @@
 #[cfg(test)]
+#[cfg(feature = "marlin")]
 mod test {
+    use ark_ec::pairing::Pairing;
     use phase1::{helpers::testing::generate_input, Phase1, Phase1Parameters, ProvingSystem};
-    use poly_commit::kzg10::UniversalParams;
     use rand::thread_rng;
     use setup_utils::{blank_hash, BatchExpMode, CheckForCorrectness, UseCompression};
 
-    use algebra::{bls12_377::Fr, Bls12_377, Field, UniformRand};
+    use ark_bls12_377::{Bls12_377, Fr};
+    use ark_crypto_primitives::sponge::poseidon::PoseidonSponge;
+    use ark_ff::Field;
+    use ark_marlin::Marlin;
+    use ark_poly::{univariate::DensePolynomial as DensePoly, DenseUVPolynomial};
+    use ark_poly_commit::{kzg10::UniversalParams, sonic_pc::SonicKZG10};
+    use ark_relations::{
+        lc,
+        r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError},
+    };
+    use ark_std::UniformRand;
     use blake2::Blake2s;
     use itertools::Itertools;
-    use marlin::Marlin;
-    use poly_commit::sonic_pc::SonicKZG10;
-    use r1cs_core::{lc, ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
     use std::{collections::BTreeMap, ops::MulAssign};
 
     #[derive(Copy, Clone)]
@@ -44,7 +52,9 @@ mod test {
         }
     }
 
-    type MultiPCSonic = SonicKZG10<Bls12_377>;
+    type UniPoly_377 = DensePoly<<Bls12_377 as Pairing>::ScalarField>;
+    type Sponge_Bls12_377 = PoseidonSponge<<Bls12_377 as Pairing>::ScalarField>;
+    type MultiPCSonic = SonicKZG10<Bls12_377, UniPoly_377, Sponge_Bls12_377>;
     type MarlinSonicInst = Marlin<Fr, MultiPCSonic, Blake2s>;
 
     #[test]
@@ -63,7 +73,7 @@ mod test {
         // Construct our keypair using the RNG we created above
         let current_accumulator_hash = blank_hash();
         let mut rng = thread_rng();
-        let (_, privkey) =
+        let (_, priv_key) =
             Phase1::key_generation(&mut rng, current_accumulator_hash.as_ref()).expect("could not generate keypair");
 
         Phase1::computation(
@@ -73,7 +83,7 @@ mod test {
             UseCompression::No,
             CheckForCorrectness::No,
             BatchExpMode::Auto,
-            &privkey,
+            &priv_key,
             &parameters,
         )
         .unwrap();
@@ -111,7 +121,7 @@ mod test {
             powers_of_gamma_g: alpha_tau_powers_g1,
             h: h.clone(),
             beta_h: beta_h.clone(),
-            prepared_neg_powers_of_h,
+            neg_powers_of_h: prepared_neg_powers_of_h,
             prepared_h: h.into(),
             prepared_beta_h: beta_h.into(),
         };

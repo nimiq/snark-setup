@@ -1,7 +1,7 @@
 use phase1::{Phase1, Phase1Parameters, ProvingSystem};
-use setup_utils::UseCompression;
+use setup_utils::{BatchGroupArithmetic, UseCompression};
 
-use algebra::PairingEngine as Engine;
+use ark_ec::pairing::Pairing as Engine;
 
 use memmap::*;
 use std::fs::OpenOptions;
@@ -10,7 +10,11 @@ use tracing::info;
 const CONTRIBUTION_IS_COMPRESSED: UseCompression = UseCompression::Yes;
 const COMPRESS_NEW_SPLIT: UseCompression = UseCompression::No;
 
-pub fn split<T: Engine + Sync>(chunk_filename_prefix: &str, combined_filename: &str, parameters: &Phase1Parameters<T>) {
+pub fn split<T: Engine + Sync>(chunk_filename_prefix: &str, combined_filename: &str, parameters: &Phase1Parameters<T>)
+where
+    T::G1Affine: BatchGroupArithmetic,
+    T::G2Affine: BatchGroupArithmetic,
+{
     info!("Will split contributions");
 
     let mut writers = vec![];

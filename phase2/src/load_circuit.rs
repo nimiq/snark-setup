@@ -1,11 +1,11 @@
-use algebra::{CanonicalDeserialize, CanonicalSerialize, PairingEngine, SerializationError};
-use r1cs_core::Matrix;
+use ark_ec::pairing::Pairing;
+use ark_relations::r1cs::Matrix;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use setup_utils::Error;
-use std::io::{Read, Write};
 
 // For serialization of the constraint system
 #[derive(Debug, PartialEq, CanonicalDeserialize, CanonicalSerialize, Clone)]
-pub struct Matrices<E: PairingEngine> {
+pub struct Matrices<E: Pairing> {
     /// The number of variables that are "public instances" to the constraint
     /// system.
     pub num_instance_variables: usize,
@@ -22,17 +22,17 @@ pub struct Matrices<E: PairingEngine> {
     pub c_num_non_zero: usize,
     /// The A constraint matrix. This is empty when
     /// `self.mode == SynthesisMode::Prove { construct_matrices = false }`.
-    pub a: Matrix<E::Fr>,
+    pub a: Matrix<E::ScalarField>,
     /// The B constraint matrix. This is empty when
     /// `self.mode == SynthesisMode::Prove { construct_matrices = false }`.
-    pub b: Matrix<E::Fr>,
+    pub b: Matrix<E::ScalarField>,
     /// The C constraint matrix. This is empty when
     /// `self.mode == SynthesisMode::Prove { construct_matrices = false }`.
-    pub c: Matrix<E::Fr>,
+    pub c: Matrix<E::ScalarField>,
 }
 
-impl<E: PairingEngine> Matrices<E> {
+impl<E: Pairing> Matrices<E> {
     pub fn read(input_map: &[u8]) -> Result<Self, Error> {
-        Ok(Matrices::deserialize(&mut &input_map[..])?)
+        Ok(Matrices::deserialize_compressed(&mut &input_map[..])?)
     }
 }

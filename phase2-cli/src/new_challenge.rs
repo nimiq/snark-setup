@@ -1,11 +1,14 @@
-use phase2::load_circuit::Matrices;
-use phase2::parameters::MPCParameters;
+use phase2::{load_circuit::Matrices, parameters::MPCParameters};
 use setup_utils::{calculate_hash, print_hash, CheckForCorrectness, UseCompression};
 
 use crate::COMPRESS_CONTRIBUTE_INPUT;
-use algebra::{CanonicalDeserialize, CanonicalSerialize, BW6_761};
+use ark_bw6_761::BW6_761;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use memmap::*;
-use std::{fs::File, fs::OpenOptions, io::Read, io::Write};
+use std::{
+    fs::{File, OpenOptions},
+    io::{Read, Write},
+};
 use tracing::info;
 
 pub fn new_challenge(
@@ -22,7 +25,7 @@ pub fn new_challenge(
     let mut file = File::open(circuit_filename).unwrap();
     let mut buffer = Vec::<u8>::new();
     file.read_to_end(&mut buffer).unwrap();
-    let m = Matrices::<BW6_761>::deserialize(&*buffer).unwrap();
+    let m = Matrices::<BW6_761>::deserialize_compressed(&*buffer).unwrap();
 
     info!("Loaded circuit with {} constraints", m.num_constraints);
 
@@ -58,11 +61,9 @@ pub fn new_challenge(
         .unwrap();
 
     let mut serialized_query_parameters = vec![];
-    match COMPRESS_CONTRIBUTE_INPUT {
-        UseCompression::No => query_parameters.serialize_uncompressed(&mut serialized_query_parameters),
-        UseCompression::Yes => query_parameters.serialize(&mut serialized_query_parameters),
-    }
-    .unwrap();
+    query_parameters
+        .serialize_with_mode(&mut serialized_query_parameters, COMPRESS_CONTRIBUTE_INPUT)
+        .unwrap();
 
     let contribution_hash = {
         std::fs::File::create(format!("{}.full", challenge_filename))

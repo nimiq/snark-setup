@@ -1,6 +1,10 @@
 use super::*;
 
-impl<'a, E: PairingEngine + Sync> Phase1<'a, E> {
+impl<'a, E: Pairing + Sync> Phase1<'a, E>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     ///
     /// Phase 1: Aggregation
     ///
@@ -357,15 +361,19 @@ mod tests {
     use super::*;
     use crate::helpers::testing::{generate_input, generate_new_challenge, generate_output};
 
-    use algebra::{Bls12_377, BW6_761};
+    use ark_bls12_377::Bls12_377;
+    use ark_bw6_761::BW6_761;
 
-    fn aggregation_test<E: PairingEngine>(
+    fn aggregation_test<E: Pairing>(
         powers: usize,
         batch: usize,
         compressed_input: UseCompression,
         compressed_output: UseCompression,
         use_wrong_chunks: bool,
-    ) {
+    ) where
+        E::G1Affine: BatchGroupArithmetic,
+        E::G2Affine: BatchGroupArithmetic,
+    {
         let correctness = CheckForCorrectness::Full;
 
         for proving_system in &[ProvingSystem::Groth16, ProvingSystem::Marlin] {
@@ -428,22 +436,24 @@ mod tests {
                         drop(private_key_1);
 
                         // Verify that the chunked contribution is correct.
-                        assert!(Phase1::verification(
-                            &input,
-                            &output_1,
-                            &mut new_challenge_1,
-                            &public_key_1,
-                            &digest,
-                            compressed_input,
-                            compressed_output,
-                            UseCompression::No,
-                            correctness,
-                            correctness,
-                            SubgroupCheckMode::Auto,
-                            false,
-                            &parameters,
-                        )
-                        .is_ok());
+                        assert!(
+                            Phase1::verification(
+                                &input,
+                                &output_1,
+                                &mut new_challenge_1,
+                                &public_key_1,
+                                &digest,
+                                compressed_input,
+                                compressed_output,
+                                UseCompression::No,
+                                correctness,
+                                correctness,
+                                SubgroupCheckMode::Auto,
+                                false,
+                                &parameters,
+                            )
+                            .is_ok()
+                        );
 
                         output_1
                     };
@@ -482,31 +492,13 @@ mod tests {
                         drop(private_key_2);
 
                         // Verify that the chunked contribution is correct.
-                        assert!(Phase1::verification(
-                            &output_1,
-                            &output_2,
-                            &mut new_challenge_2,
-                            &public_key_2,
-                            &digest,
-                            compressed_output,
-                            compressed_output,
-                            UseCompression::No,
-                            correctness,
-                            correctness,
-                            SubgroupCheckMode::Auto,
-                            false,
-                            &parameters,
-                        )
-                        .is_ok());
-
-                        // Verification will fail if the old hash is used.
-                        if parameters.chunk_index == 0 {
-                            assert!(Phase1::verification(
+                        assert!(
+                            Phase1::verification(
                                 &output_1,
                                 &output_2,
                                 &mut new_challenge_2,
                                 &public_key_2,
-                                &blank_hash(),
+                                &digest,
                                 compressed_output,
                                 compressed_output,
                                 UseCompression::No,
@@ -516,7 +508,29 @@ mod tests {
                                 false,
                                 &parameters,
                             )
-                            .is_err());
+                            .is_ok()
+                        );
+
+                        // Verification will fail if the old hash is used.
+                        if parameters.chunk_index == 0 {
+                            assert!(
+                                Phase1::verification(
+                                    &output_1,
+                                    &output_2,
+                                    &mut new_challenge_2,
+                                    &public_key_2,
+                                    &blank_hash(),
+                                    compressed_output,
+                                    compressed_output,
+                                    UseCompression::No,
+                                    correctness,
+                                    correctness,
+                                    SubgroupCheckMode::Auto,
+                                    false,
+                                    &parameters,
+                                )
+                                .is_err()
+                            );
                         }
 
                         output_2
@@ -642,22 +656,24 @@ mod tests {
                         drop(private_key_1);
 
                         // Verify that the chunked contribution is correct.
-                        assert!(Phase1::verification(
-                            &input,
-                            &output_1,
-                            &mut new_challenge_1,
-                            &public_key_1,
-                            &digest,
-                            compressed_output,
-                            compressed_output,
-                            UseCompression::No,
-                            correctness,
-                            correctness,
-                            SubgroupCheckMode::Auto,
-                            false,
-                            &parameters,
-                        )
-                        .is_ok());
+                        assert!(
+                            Phase1::verification(
+                                &input,
+                                &output_1,
+                                &mut new_challenge_1,
+                                &public_key_1,
+                                &digest,
+                                compressed_output,
+                                compressed_output,
+                                UseCompression::No,
+                                correctness,
+                                correctness,
+                                SubgroupCheckMode::Auto,
+                                false,
+                                &parameters,
+                            )
+                            .is_ok()
+                        );
 
                         output_1
                     };
@@ -692,31 +708,13 @@ mod tests {
                         drop(private_key_2);
 
                         // Verify that the chunked contribution is correct.
-                        assert!(Phase1::verification(
-                            &output_1,
-                            &output_2,
-                            &mut new_challenge_2,
-                            &public_key_2,
-                            &digest,
-                            compressed_output,
-                            compressed_output,
-                            UseCompression::No,
-                            correctness,
-                            correctness,
-                            SubgroupCheckMode::Auto,
-                            false,
-                            &parameters,
-                        )
-                        .is_ok());
-
-                        // Verification will fail if the old hash is used.
-                        if parameters.chunk_index == 0 {
-                            assert!(Phase1::verification(
+                        assert!(
+                            Phase1::verification(
                                 &output_1,
                                 &output_2,
                                 &mut new_challenge_2,
                                 &public_key_2,
-                                &blank_hash(),
+                                &digest,
                                 compressed_output,
                                 compressed_output,
                                 UseCompression::No,
@@ -726,7 +724,29 @@ mod tests {
                                 false,
                                 &parameters,
                             )
-                            .is_err());
+                            .is_ok()
+                        );
+
+                        // Verification will fail if the old hash is used.
+                        if parameters.chunk_index == 0 {
+                            assert!(
+                                Phase1::verification(
+                                    &output_1,
+                                    &output_2,
+                                    &mut new_challenge_2,
+                                    &public_key_2,
+                                    &blank_hash(),
+                                    compressed_output,
+                                    compressed_output,
+                                    UseCompression::No,
+                                    correctness,
+                                    correctness,
+                                    SubgroupCheckMode::Auto,
+                                    false,
+                                    &parameters,
+                                )
+                                .is_err()
+                            );
                         }
 
                         output_2

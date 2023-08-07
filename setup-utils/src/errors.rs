@@ -1,7 +1,7 @@
 use crate::ElementType;
 
-use algebra::SerializationError;
-use r1cs_core::SynthesisError;
+use ark_relations::r1cs::SynthesisError;
+use ark_serialize::SerializationError;
 
 use std::io;
 use thiserror::Error;

@@ -17,7 +17,9 @@ cfg_if! {
         use wasm_bindgen::prelude::*;
         use itertools::Itertools;
         use parameters::MPCParameters;
-        use algebra::{Bls12_377, BW6_761, PairingEngine};
+        use ark_bls12_377::Bls12_377;
+        use ark_bw6_761::BW6_761;
+        use ark_ec::pairing::Pairing;
         use setup_utils::{BatchExpMode, CheckForCorrectness, get_rng, SubgroupCheckMode, user_system_randomness, UseCompression};
 
         macro_rules! log {
@@ -49,7 +51,7 @@ cfg_if! {
             Ok(res)
         }
 
-        fn contribute_challenge<E: PairingEngine>(params: &mut MPCParameters<E>) -> Vec<u8> {
+        fn contribute_challenge<E: Pairing>(params: &mut MPCParameters<E>) -> Vec<u8> {
             let mut rng = get_rng(&user_system_randomness());
             log!("Contributing...");
             let hash = params.contribute(BatchExpMode::Auto, &mut rng);

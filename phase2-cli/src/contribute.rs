@@ -1,7 +1,7 @@
 use phase2::parameters::MPCParameters;
 use setup_utils::{calculate_hash, print_hash, BatchExpMode, CheckForCorrectness, SubgroupCheckMode};
 
-use algebra::BW6_761;
+use ark_bw6_761::BW6_761;
 
 use crate::{COMPRESS_CONTRIBUTE_INPUT, COMPRESS_CONTRIBUTE_OUTPUT};
 use rand::Rng;

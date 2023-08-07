@@ -1,25 +1,33 @@
-use algebra::{Bls12_377, Bls12_381, PairingEngine, PrimeField, BW6_761};
-use groth16::{create_random_proof, prepare_verifying_key, verify_proof, Parameters};
+use std::ops::Neg;
+
+use ark_bls12_377::Bls12_377;
+use ark_bls12_381::Bls12_381;
+use ark_bw6_761::BW6_761;
+use ark_ec::pairing::Pairing;
+use ark_ff::Field;
+use ark_groth16::{prepare_verifying_key, Groth16, ProvingKey};
+use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystem, SynthesisMode};
 use phase1::{
     helpers::testing::{setup_verify, CheckForCorrectness},
     parameters::Phase1Parameters,
-    Phase1, ProvingSystem,
+    Phase1,
+    ProvingSystem,
 };
-use phase2::load_circuit::Matrices;
-use phase2::parameters::circuit_to_qap;
 use phase2::{
     chunked_groth16::verify,
     helpers::testing::TestCircuit,
-    parameters::{MPCParameters, Phase2ContributionMode},
+    load_circuit::Matrices,
+    parameters::{circuit_to_qap, MPCParameters, Phase2ContributionMode},
 };
-use r1cs_core::{ConstraintSynthesizer, ConstraintSystem, SynthesisMode};
 use rand::{thread_rng, Rng};
-use setup_utils::{derive_rng_from_seed, BatchExpMode, Groth16Params, UseCompression};
+use setup_utils::{derive_rng_from_seed, BatchExpMode, BatchGroupArithmetic, Groth16Params, UseCompression};
 
 fn generate_mpc_parameters<E, C>(c: C, rng: &mut impl Rng) -> MPCParameters<E>
 where
-    E: PairingEngine,
-    C: Clone + ConstraintSynthesizer<E::Fr>,
+    E: Pairing,
+    E::G1Affine: Neg<Output = E::G1Affine> + BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+    C: Clone + ConstraintSynthesizer<E::ScalarField>,
 {
     // perform the MPC on only the amount of constraints required for the circuit
     let counter = ConstraintSystem::new_ref();
@@ -98,8 +106,10 @@ where
 
 fn generate_mpc_parameters_chunked<E, C>(c: C) -> MPCParameters<E>
 where
-    E: PairingEngine,
-    C: Clone + ConstraintSynthesizer<E::Fr>,
+    E: Pairing,
+    E::G1Affine: Neg<Output = E::G1Affine> + BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+    C: Clone + ConstraintSynthesizer<E::ScalarField>,
 {
     // perform the MPC on only the amount of constraints required for the circuit
     let counter = ConstraintSystem::new_ref();
@@ -214,11 +224,15 @@ fn test_groth_bw6() {
     groth_test_curve::<BW6_761>()
 }
 
-fn groth_test_curve<E: PairingEngine>() {
+fn groth_test_curve<E: Pairing>()
+where
+    E::G1Affine: Neg<Output = E::G1Affine> + BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     for contribution_mode in &[Phase2ContributionMode::Full, Phase2ContributionMode::Chunked] {
         let rng = &mut thread_rng();
         // generate the params
-        let params: Parameters<E> = {
+        let params: ProvingKey<E> = {
             let c = TestCircuit::<E>(None);
             let setup = match contribution_mode {
                 Phase2ContributionMode::Full => generate_mpc_parameters(c, rng),
@@ -232,11 +246,12 @@ fn groth_test_curve<E: PairingEngine>() {
 
         // Create a proof with these params
         let proof = {
-            let c = TestCircuit::<E>(Some(<E::Fr as PrimeField>::BigInt::from(5).into()));
-            create_random_proof(c, &params, rng).unwrap()
+            <E::ScalarField as Field>::extension_degree();
+            let c = TestCircuit::<E>(Some(5u64.into()));
+            Groth16::<E>::create_random_proof_with_reduction(c, &params, rng).unwrap()
         };
 
-        let res = verify_proof(&pvk, &proof, &[<E::Fr as PrimeField>::BigInt::from(25).into()]);
+        let res = Groth16::<E>::verify_proof(&pvk, &proof, &[25u64.into()]);
         assert!(res.unwrap());
     }
 }

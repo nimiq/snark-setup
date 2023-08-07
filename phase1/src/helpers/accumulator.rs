@@ -2,17 +2,17 @@
 
 use crate::{helpers::buffers::*, Phase1Parameters, ProvingSystem};
 use cfg_if::cfg_if;
-use setup_utils::{BatchDeserializer, BatchSerializer, Deserializer, Serializer, *};
+use setup_utils::*;
 
-use algebra::{AffineCurve, PairingEngine};
+use ark_ec::{pairing::Pairing, AffineRepr};
 
+#[cfg(not(feature = "wasm"))]
+use crate::ContributionMode;
 #[cfg(not(feature = "wasm"))]
 use setup_utils::SubgroupCheckMode;
-#[cfg(not(feature = "wasm"))]
-use {crate::ContributionMode, algebra::batch_verify_in_subgroup};
 
 #[allow(type_alias_bounds)]
-type AccumulatorElements<E: PairingEngine> = (
+type AccumulatorElements<E: Pairing> = (
     Vec<E::G1Affine>,
     Vec<E::G2Affine>,
     Vec<E::G1Affine>,
@@ -22,7 +22,7 @@ type AccumulatorElements<E: PairingEngine> = (
 
 #[allow(type_alias_bounds)]
 #[allow(unused)]
-type AccumulatorElementsRef<'a, E: PairingEngine> = (
+type AccumulatorElementsRef<'a, E: Pairing> = (
     &'a [E::G1Affine],
     &'a [E::G2Affine],
     &'a [E::G1Affine],
@@ -32,7 +32,8 @@ type AccumulatorElementsRef<'a, E: PairingEngine> = (
 
 cfg_if! {
     if #[cfg(not(feature = "wasm"))] {
-        use algebra::{PrimeField, FpParameters, cfg_iter, Zero};
+        use ark_ff::PrimeField;
+        use ark_std::{cfg_iter, Zero};
         #[cfg(feature = "parallel")]
         use rayon::prelude::*;
         use tracing::{warn,debug};
@@ -40,7 +41,9 @@ cfg_if! {
         use crate::PublicKey;
         /// Given a public key and the accumulator's digest, it hashes each G1 element
         /// along with the digest, and then hashes it to G2.
-        pub(crate) fn compute_g2_s_key<E: PairingEngine>(key: &PublicKey<E>, digest: &[u8]) -> Result<[E::G2Affine; 3]> {
+        pub(crate) fn compute_g2_s_key<E: Pairing>(key: &PublicKey<E>, digest: &[u8]) -> Result<[E::G2Affine; 3]> where
+        E::G1Affine: BatchGroupArithmetic,
+        E::G2Affine: BatchGroupArithmetic,{
             Ok([
                 compute_g2_s::<E>(&digest, &key.tau_g1.0, &key.tau_g1.1, 0)?,
                 compute_g2_s::<E>(&digest, &key.alpha_g1.0, &key.alpha_g1.1, 1)?,
@@ -51,7 +54,7 @@ cfg_if! {
         /// Reads a list of G1 elements from the buffer to the provided `elements` slice
         /// and then checks that their powers pairs ratio matches the one from the
         /// provided `check` pair
-        pub(crate) fn check_power_ratios<E: PairingEngine>(
+        pub(crate) fn check_power_ratios<E: Pairing>(
             (buffer, compression, check_for_correctness): (&[u8], UseCompression, CheckForCorrectness),
             (start, end): (usize, usize),
             elements: &mut [E::G1Affine],
@@ -70,7 +73,7 @@ cfg_if! {
         /// Reads a list of G2 elements from the buffer to the provided `elements` slice
         /// and then checks that their powers pairs ratio matches the one from the
         /// provided `check` pair
-        pub(crate) fn check_power_ratios_g2<E: PairingEngine>(
+        pub(crate) fn check_power_ratios_g2<E: Pairing>(
             (buffer, compression, check_for_correctness): (&[u8], UseCompression, CheckForCorrectness),
             (start, end): (usize, usize),
             elements: &mut [E::G2Affine],
@@ -88,7 +91,7 @@ cfg_if! {
 
         /// Reads a list of group elements from the buffer to the provided `elements` slice
         /// and then checks that the elements are nonzero and in the prime order subgroup.
-        pub(crate) fn check_elements_are_nonzero_and_in_prime_order_subgroup<C: AffineCurve>(
+        pub(crate) fn check_elements_are_nonzero_and_in_prime_order_subgroup<C: AffineRepr + BatchGroupArithmetic>(
             (buffer, compression): (&[u8], UseCompression),
             (start, end): (usize, usize),
             elements: &mut [C],
@@ -114,7 +117,7 @@ cfg_if! {
                 }
                 (false, SubgroupCheckMode::Auto) | (_, SubgroupCheckMode::Direct) => {
                     cfg_iter!(elements).enumerate().all(|(i, p)| {
-                        let res = p.mul(<<C::ScalarField as PrimeField>::Params as FpParameters>::MODULUS)
+                        let res = p.mul_bigint(<C::ScalarField as PrimeField>::MODULUS)
                             .is_zero();
                         if !res {
                             warn!("Wasn't in subgroup {} index {}", p, i)
@@ -131,7 +134,7 @@ cfg_if! {
         }
 
         /// Reads a chunk of 2 elements from the buffer
-        pub(crate) fn read_initial_elements<C: AffineCurve>(
+        pub(crate) fn read_initial_elements<C: AffineRepr>(
             buffer: &[u8],
             compressed: UseCompression,
             check_input_for_correctness: CheckForCorrectness,
@@ -140,7 +143,7 @@ cfg_if! {
         }
 
         /// Reads a chunk of {amount} elements from the buffer
-        pub(crate) fn read_initial_elements_with_amount<C: AffineCurve>(
+        pub(crate) fn read_initial_elements_with_amount<C: AffineRepr>(
             buffer: &[u8],
             amount: usize,
             compressed: UseCompression,
@@ -165,7 +168,7 @@ cfg_if! {
         }
 
         /// Takes a compressed input buffer and decompresses it.
-        fn decompress_buffer<C: AffineCurve>(
+        fn decompress_buffer<C: AffineRepr>(
             output: &mut [u8],
             input: &[u8],
             check_input_for_correctness: CheckForCorrectness,
@@ -183,12 +186,14 @@ cfg_if! {
         }
 
         /// Takes a compressed input buffer and decompresses it into the output buffer.
-        pub fn decompress<E: PairingEngine>(
+        pub fn decompress<E: Pairing>(
             input: &[u8],
             output: &mut [u8],
             check_input_for_correctness: CheckForCorrectness,
             parameters: &Phase1Parameters<E>,
-        ) -> Result<()> {
+        ) -> Result<()> where
+        E::G1Affine: BatchGroupArithmetic,
+        E::G2Affine: BatchGroupArithmetic,{
             let compressed_input = UseCompression::Yes;
             let compressed_output = UseCompression::No;
 
@@ -290,12 +295,16 @@ cfg_if! {
 
 /// Serializes all the provided elements to the output buffer
 #[allow(unused)]
-pub fn serialize<E: PairingEngine>(
+pub fn serialize<E: Pairing>(
     elements: AccumulatorElementsRef<E>,
     output: &mut [u8],
     compressed: UseCompression,
     parameters: &Phase1Parameters<E>,
-) -> Result<()> {
+) -> Result<()>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     let (in_tau_g1, in_tau_g2, in_alpha_g1, in_beta_g1, in_beta_g2) = elements;
     let (tau_g1, tau_g2, alpha_g1, beta_g1, beta_g2) = split_mut(output, parameters, compressed);
 
@@ -313,12 +322,16 @@ pub fn serialize<E: PairingEngine>(
 
 /// Warning, only use this on machines which have enough memory to load
 /// the accumulator in memory
-pub fn deserialize<E: PairingEngine>(
+pub fn deserialize<E: Pairing>(
     input: &[u8],
     compressed: UseCompression,
     check_input_for_correctness: CheckForCorrectness,
     parameters: &Phase1Parameters<E>,
-) -> Result<AccumulatorElements<E>> {
+) -> Result<AccumulatorElements<E>>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     // Get an immutable reference to the input chunks
     let (in_tau_g1, in_tau_g2, in_alpha_g1, in_beta_g1, in_beta_g2) = split(&input, parameters, compressed);
 
@@ -329,7 +342,7 @@ pub fn deserialize<E: PairingEngine>(
     let beta_g1 = in_beta_g1.read_batch(compressed, check_input_for_correctness)?;
     let beta_g2 = match parameters.proving_system {
         ProvingSystem::Groth16 => (&*in_beta_g2).read_element(compressed, check_input_for_correctness)?,
-        ProvingSystem::Marlin => E::G2Affine::prime_subgroup_generator(),
+        ProvingSystem::Marlin => E::G2Affine::generator(),
     };
 
     Ok((tau_g1, tau_g2, alpha_g1, beta_g1, beta_g2))
@@ -340,11 +353,11 @@ mod tests {
     use super::*;
     use crate::helpers::testing::random_point_vec;
 
-    use algebra::bls12_377::Bls12_377;
+    use ark_bls12_377::Bls12_377;
 
     use rand::thread_rng;
 
-    fn decompress_buffer_curve_test<C: AffineCurve>() {
+    fn decompress_buffer_curve_test<C: AffineRepr>() {
         // Generate some random points.
         let mut rng = thread_rng();
         let num_els = 10;
@@ -368,7 +381,7 @@ mod tests {
 
     #[test]
     fn test_decompress_buffer() {
-        decompress_buffer_curve_test::<<Bls12_377 as PairingEngine>::G1Affine>();
-        decompress_buffer_curve_test::<<Bls12_377 as PairingEngine>::G2Affine>();
+        decompress_buffer_curve_test::<<Bls12_377 as Pairing>::G1Affine>();
+        decompress_buffer_curve_test::<<Bls12_377 as Pairing>::G2Affine>();
     }
 }
