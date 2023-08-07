@@ -32,5 +32,5 @@ pub use seed::derive_rng_from_seed;
 pub use blake2::digest::generic_array::GenericArray;
 pub use typenum::U64;
 
-pub use fft::{cfg_chunks, cfg_into_iter, cfg_iter_mut};
+pub use ark_std::{cfg_chunks, cfg_into_iter, cfg_iter_mut};
 pub mod converters;

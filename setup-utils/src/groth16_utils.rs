@@ -2,11 +2,10 @@
 /// to Phase 2-compatible Lagrange Coefficients.
 use crate::{buffer_size, CheckForCorrectness, Deserializer, Result, Serializer, UseCompression};
 
-use algebra::{AffineCurve, PairingEngine, PrimeField, ProjectiveCurve};
-use fft::{
-    cfg_into_iter, cfg_iter,
-    domain::{radix2::Radix2EvaluationDomain, EvaluationDomain},
-};
+use ark_ec::{pairing::Pairing, AffineRepr, CurveGroup};
+use ark_ff::PrimeField;
+use ark_poly::domain::{radix2::Radix2EvaluationDomain, EvaluationDomain};
+use ark_std::{cfg_into_iter, ops::Neg};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -14,7 +13,7 @@ use std::{fmt::Debug, io::Write};
 use tracing::{debug, info, info_span};
 
 #[derive(Debug)]
-pub struct Groth16Params<E: PairingEngine> {
+pub struct Groth16Params<E: Pairing> {
     pub alpha_g1: E::G1Affine,
     pub beta_g1: E::G1Affine,
     pub beta_g2: E::G2Affine,
@@ -25,7 +24,7 @@ pub struct Groth16Params<E: PairingEngine> {
     pub h_g1: Vec<E::G1Affine>,
 }
 
-impl<E: PairingEngine> PartialEq for Groth16Params<E> {
+impl<E: Pairing> PartialEq for Groth16Params<E> {
     fn eq(&self, other: &Self) -> bool {
         self.alpha_g1 == other.alpha_g1
             && self.beta_g1 == other.beta_g1
@@ -45,25 +44,27 @@ fn to_coeffs<F, C, E>(domain: &E, coeffs: &[C]) -> Vec<C>
 where
     E: EvaluationDomain<F>,
     F: PrimeField,
-    C: AffineCurve,
-    C::Projective: std::ops::MulAssign<F>,
+    C: AffineRepr,
+    C::Group: std::ops::MulAssign<F>,
 {
-    let mut coeffs = domain.ifft(&coeffs.iter().map(|e| e.into_projective()).collect::<Vec<_>>());
-    C::Projective::batch_normalization(&mut coeffs);
-    cfg_iter!(coeffs).map(|p| p.into_affine()).collect()
+    let mut coeffs = domain.ifft(&coeffs.iter().map(|e| C::Group::from(*e)).collect::<Vec<_>>());
+    C::Group::normalize_batch(&mut coeffs)
 }
 
 /// H query used in Groth16
 /// x^i * (x^m - 1) for i in 0..=(m-2) a.k.a.
 /// x^(i + m) - x^i for i in 0..=(m-2)
 /// for radix2 evaluation domains
-fn h_query_groth16<C: AffineCurve>(powers: &[C], degree: usize) -> Vec<C> {
+fn h_query_groth16<C: AffineRepr + Neg<Output = C>>(powers: &[C], degree: usize) -> Vec<C> {
     cfg_into_iter!(0..degree - 1)
-        .map(|i| powers[i + degree] + powers[i].neg())
+        .map(|i| (powers[i + degree] + powers[i].neg()).into())
         .collect()
 }
 
-impl<E: PairingEngine> Groth16Params<E> {
+impl<E: Pairing> Groth16Params<E>
+where
+    E::G1Affine: Neg<Output = E::G1Affine>,
+{
     /// Loads the Powers of Tau and transforms them to coefficient form
     /// in preparation of Phase 2
     ///
@@ -82,7 +83,7 @@ impl<E: PairingEngine> Groth16Params<E> {
         let _enter = span.enter();
 
         // Create the evaluation domain
-        let domain = Radix2EvaluationDomain::<E::Fr>::new(phase2_size).expect("could not create domain");
+        let domain = Radix2EvaluationDomain::<E::ScalarField>::new(phase2_size).expect("could not create domain");
 
         info!("converting powers of tau to lagrange coefficients");
 
@@ -231,12 +232,7 @@ type SplitBuf<'a> = (&'a [u8], &'a [u8], &'a [u8], &'a [u8], &'a [u8]);
 use crate::BatchDeserializer;
 
 /// splits the transcript from phase 1 after it's been prepared and converted to coefficient form
-fn split_transcript<E: PairingEngine>(
-    input: &[u8],
-    phase1_size: usize,
-    size: usize,
-    compressed: UseCompression,
-) -> SplitBuf {
+fn split_transcript<E: Pairing>(input: &[u8], phase1_size: usize, size: usize, compressed: UseCompression) -> SplitBuf {
     let g1_size = buffer_size::<E::G1Affine>(compressed);
     let g2_size = buffer_size::<E::G2Affine>(compressed);
     // N elements per coefficient
@@ -267,7 +263,7 @@ mod tests {
 
     use algebra::Bls12_377;
 
-    fn read_write_curve<E: PairingEngine>(powers: usize, prepared_phase1_size: usize, compressed: UseCompression) {
+    fn read_write_curve<E: Pairing>(powers: usize, prepared_phase1_size: usize, compressed: UseCompression) {
         fn compat(compression: UseCompression) -> UseCompressionPhase1 {
             match compression {
                 UseCompression::Yes => UseCompressionPhase1::Yes,

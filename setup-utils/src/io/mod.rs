@@ -6,14 +6,10 @@ mod write;
 pub use write::{BatchSerializer, Serializer};
 
 use crate::UseCompression;
-use algebra::AffineCurve;
+use ark_ec::AffineRepr;
 
-pub fn buffer_size<C: AffineCurve>(compression: UseCompression) -> usize {
-    if compression == UseCompression::Yes {
-        C::SERIALIZED_SIZE
-    } else {
-        C::UNCOMPRESSED_SIZE
-    }
+pub fn buffer_size<C: AffineRepr>(compression: UseCompression) -> usize {
+    C::default().serialized_size(compression)
 }
 
 #[cfg(test)]
@@ -21,7 +17,7 @@ mod tests {
     use super::*;
     use phase1::helpers::testing::random_point_vec;
 
-    use algebra::bls12_377::{G1Affine, G2Affine};
+    use ark_ec::models::bls12::{G1Affine, G2Affine};
 
     use crate::CheckForCorrectness;
     use rand::thread_rng;
@@ -58,7 +54,7 @@ mod tests {
         read_write_batch_element_preallocated::<G2Affine>(UseCompression::Yes);
     }
 
-    fn read_write_single_element<E: AffineCurve>(compression: UseCompression) {
+    fn read_write_single_element<E: AffineRepr>(compression: UseCompression) {
         // uncompressed buffers are twice the size
         let el = E::prime_subgroup_generator();
         let mut buf = vec![];
@@ -68,7 +64,7 @@ mod tests {
         assert_eq!(el, deserialized);
     }
 
-    fn read_write_single_element_preallocated<E: AffineCurve>(compression: UseCompression) {
+    fn read_write_single_element_preallocated<E: AffineRepr>(compression: UseCompression) {
         // uncompressed buffers are twice the size
         let mut prealloc = E::zero();
         let el = E::prime_subgroup_generator();
@@ -80,7 +76,7 @@ mod tests {
         assert_eq!(el, prealloc);
     }
 
-    fn read_write_batch_element<E: AffineCurve>(compression: UseCompression) {
+    fn read_write_batch_element<E: AffineRepr>(compression: UseCompression) {
         // generate a vector of 10 elements
         let num_els = 10;
         let mut rng = thread_rng();
@@ -95,7 +91,7 @@ mod tests {
         assert_eq!(elements, deserialized2);
     }
 
-    fn read_write_batch_element_preallocated<E: AffineCurve>(compression: UseCompression) {
+    fn read_write_batch_element_preallocated<E: AffineRepr>(compression: UseCompression) {
         // generate a vector of 10 elements
         let num_els = 10;
         let mut rng = thread_rng();

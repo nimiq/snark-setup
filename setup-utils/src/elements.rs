@@ -1,8 +1,8 @@
 use crate::{BatchDeserializer, Error};
-use algebra::{
-    batch_verify_in_subgroup, cfg_iter, AffineCurve, CanonicalDeserialize, CanonicalSerialize, FpParameters,
-    PrimeField, Read, SerializationError, Write, Zero,
-};
+use ark_ec::AffineRepr;
+use ark_ff::PrimeField;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Compress, Read, SerializationError, Validate, Write};
+use ark_std::{cfg_iter, Zero};
 
 #[cfg(not(feature = "wasm"))]
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -10,20 +10,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::fmt;
 
 /// Determines if point compression should be used.
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub enum UseCompression {
-    Yes,
-    No,
-}
-
-impl fmt::Display for UseCompression {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            UseCompression::Yes => write!(f, "Yes"),
-            UseCompression::No => write!(f, "No"),
-        }
-    }
-}
+pub type UseCompression = Compress;
 
 /// Determines if points should be checked to be infinity.
 #[derive(Copy, Clone, PartialEq)]
@@ -41,6 +28,15 @@ impl fmt::Display for CheckForCorrectness {
             CheckForCorrectness::OnlyNonZero => write!(f, "OnlyNonZero"),
             CheckForCorrectness::OnlyInGroup => write!(f, "OnlyInGroup"),
             CheckForCorrectness::No => write!(f, "No"),
+        }
+    }
+}
+
+impl From<CheckForCorrectness> for Validate {
+    fn from(value: CheckForCorrectness) -> Self {
+        match value {
+            CheckForCorrectness::OnlyNonZero | CheckForCorrectness::No => Validate::No,
+            CheckForCorrectness::OnlyInGroup | CheckForCorrectness::Full => Validate::Yes,
         }
     }
 }
@@ -109,15 +105,10 @@ pub fn deserialize<T: CanonicalDeserialize, R: Read>(
     compressed: UseCompression,
     check_correctness: CheckForCorrectness,
 ) -> core::result::Result<T, SerializationError> {
-    match (compressed, check_correctness) {
-        (UseCompression::No, CheckForCorrectness::No) => {
-            CanonicalDeserialize::deserialize_uncompressed_unchecked(reader)
-        }
-        (UseCompression::Yes, CheckForCorrectness::No) => CanonicalDeserialize::deserialize_unchecked(reader),
-        (UseCompression::No, CheckForCorrectness::Full) => CanonicalDeserialize::deserialize_uncompressed(reader),
-        (UseCompression::Yes, CheckForCorrectness::Full) => CanonicalDeserialize::deserialize(reader),
-        (..) => Err(SerializationError::InvalidData),
+    if !matches!(check_correctness, CheckForCorrectness::Full | CheckForCorrectness::No) {
+        return Err(SerializationError::InvalidData);
     }
+    CanonicalDeserialize::deserialize_with_mode(reader, compressed, check_correctness.into())
 }
 
 pub fn serialize<T: CanonicalSerialize, W: Write>(
@@ -125,13 +116,10 @@ pub fn serialize<T: CanonicalSerialize, W: Write>(
     writer: W,
     compressed: UseCompression,
 ) -> core::result::Result<(), SerializationError> {
-    match compressed {
-        UseCompression::No => CanonicalSerialize::serialize_uncompressed(element, writer),
-        UseCompression::Yes => CanonicalSerialize::serialize(element, writer),
-    }
+    CanonicalSerialize::serialize_with_mode(element, writer, compressed)
 }
 
-pub fn check_subgroup<C: AffineCurve>(
+pub fn check_subgroup<C: AffineRepr>(
     elements: &[C],
     subgroup_check_mode: SubgroupCheckMode,
 ) -> core::result::Result<(), Error> {
@@ -140,15 +128,16 @@ pub fn check_subgroup<C: AffineCurve>(
     let prime_order_subgroup_check_pass = match (elements.len() > BATCH_SIZE, subgroup_check_mode) {
         (_, SubgroupCheckMode::No) => true,
         (true, SubgroupCheckMode::Auto) | (_, SubgroupCheckMode::Batched) => {
-            match batch_verify_in_subgroup(elements, SECURITY_PARAM, &mut rand::thread_rng()) {
-                Ok(()) => true,
-                _ => false,
-            }
+            todo!() // PITODO
+                    // match batch_verify_in_subgroup(elements, SECURITY_PARAM, &mut rand::thread_rng()) {
+                    //     Ok(()) => true,
+                    //     _ => false,
+                    // }
         }
-        (false, SubgroupCheckMode::Auto) | (_, SubgroupCheckMode::Direct) => cfg_iter!(elements).all(|p| {
-            p.mul(<<C::ScalarField as PrimeField>::Params as FpParameters>::MODULUS)
-                .is_zero()
-        }),
+        (false, SubgroupCheckMode::Auto) | (_, SubgroupCheckMode::Direct) => {
+            // PITODO: double-check
+            cfg_iter!(elements).all(|p| p.mul_bigint(<C::ScalarField as PrimeField>::MODULUS).is_zero())
+        }
     };
     if !prime_order_subgroup_check_pass {
         return Err(Error::IncorrectSubgroup);
@@ -157,16 +146,13 @@ pub fn check_subgroup<C: AffineCurve>(
     Ok(())
 }
 
-pub fn read_vec<G: AffineCurve, R: Read>(
+pub fn read_vec<G: AffineRepr, R: Read>(
     mut reader: R,
     compressed: UseCompression,
     check_for_correctness: CheckForCorrectness,
 ) -> Result<Vec<G>, Error> {
-    let size = match compressed {
-        UseCompression::Yes => G::SERIALIZED_SIZE,
-        UseCompression::No => G::UNCOMPRESSED_SIZE,
-    };
-    let length = u64::deserialize(&mut reader)? as usize;
+    let size = G::default().serialized_size(compressed);
+    let length = u64::deserialize_uncompressed(&mut reader)? as usize;
     let mut bytes = vec![0u8; length * size];
     reader.read_exact(&mut bytes)?;
     bytes.read_batch(compressed, check_for_correctness)

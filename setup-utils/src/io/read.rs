@@ -1,23 +1,23 @@
 use crate::{buffer_size, CheckForCorrectness, Error, Result, UseCompression};
 
-use algebra::AffineCurve;
-use fft::cfg_chunks;
+use ark_ec::AffineRepr;
+use ark_serialize::Read;
+use ark_std::cfg_chunks;
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
-use std::io::Read;
 
 /// Used for reading 1 group element from a serialized buffer
 pub trait Deserializer {
     /// Reads 1 compressed or uncompressed element
-    fn read_element<G: AffineCurve>(
+    fn read_element<G: AffineRepr>(
         &mut self,
         compression: UseCompression,
         check_correctness: CheckForCorrectness,
     ) -> Result<G>;
 
     /// Reads exact number of elements
-    fn read_elements_exact<G: AffineCurve>(
+    fn read_elements_exact<G: AffineRepr>(
         &mut self,
         num: usize,
         compression: UseCompression,
@@ -29,7 +29,7 @@ pub trait Deserializer {
     }
 
     /// Reads 1 compressed or uncompressed element to a pre-allocated element
-    fn read_element_preallocated<G: AffineCurve>(
+    fn read_element_preallocated<G: AffineRepr>(
         &mut self,
         el: &mut G,
         compression: UseCompression,
@@ -39,14 +39,14 @@ pub trait Deserializer {
 
 pub trait BatchDeserializer {
     /// Reads multiple elements from the buffer
-    fn read_batch<G: AffineCurve>(
+    fn read_batch<G: AffineRepr>(
         &self,
         compression: UseCompression,
         check_correctness: CheckForCorrectness,
     ) -> Result<Vec<G>>;
 
     /// Reads multiple elements from the buffer to a preallocated array of Group elements
-    fn read_batch_preallocated<G: AffineCurve>(
+    fn read_batch_preallocated<G: AffineRepr>(
         &self,
         elements: &mut [G],
         compression: UseCompression,
@@ -55,19 +55,12 @@ pub trait BatchDeserializer {
 }
 
 impl<R: Read> Deserializer for R {
-    fn read_element<G: AffineCurve>(
+    fn read_element<G: AffineRepr>(
         &mut self,
         compression: UseCompression,
         check_for_correctness: CheckForCorrectness,
     ) -> Result<G> {
-        let perform_subgroup_check = !(check_for_correctness == CheckForCorrectness::OnlyNonZero
-            || check_for_correctness == CheckForCorrectness::No);
-        let point = match (compression, perform_subgroup_check) {
-            (UseCompression::Yes, true) => G::deserialize(self)?,
-            (UseCompression::Yes, false) => G::deserialize_unchecked(self)?,
-            (UseCompression::No, true) => G::deserialize_uncompressed(self)?,
-            (UseCompression::No, false) => G::deserialize_uncompressed_unchecked(self)?,
-        };
+        let point = G::deserialize_with_mode(self, compression, check_for_correctness.into())?;
 
         if (check_for_correctness == CheckForCorrectness::Full
             || check_for_correctness == CheckForCorrectness::OnlyNonZero)
@@ -79,7 +72,7 @@ impl<R: Read> Deserializer for R {
         Ok(point)
     }
 
-    fn read_element_preallocated<G: AffineCurve>(
+    fn read_element_preallocated<G: AffineRepr>(
         &mut self,
         el: &mut G,
         compression: UseCompression,
@@ -93,7 +86,7 @@ impl<R: Read> Deserializer for R {
 // We implement this for slices so that the consumer does not need to write the `&mut slice.as_ref()`
 // boilerplate in each call. This should have no performance overhead
 impl Deserializer for [u8] {
-    fn read_element<G: AffineCurve>(
+    fn read_element<G: AffineRepr>(
         &mut self,
         compression: UseCompression,
         check_correctness: CheckForCorrectness,
@@ -101,7 +94,7 @@ impl Deserializer for [u8] {
         (&*self).read_element(compression, check_correctness)
     }
 
-    fn read_element_preallocated<G: AffineCurve>(
+    fn read_element_preallocated<G: AffineRepr>(
         &mut self,
         el: &mut G,
         compression: UseCompression,
@@ -115,7 +108,7 @@ impl Deserializer for [u8] {
 // We implement this specifically for slices so that we can take advantage
 // of parallel iterators
 impl BatchDeserializer for [u8] {
-    fn read_batch<G: AffineCurve>(
+    fn read_batch<G: AffineRepr>(
         &self,
         compression: UseCompression,
         check_correctness: CheckForCorrectness,
@@ -126,7 +119,7 @@ impl BatchDeserializer for [u8] {
             .collect::<Result<Vec<_>>>()
     }
 
-    fn read_batch_preallocated<G: AffineCurve>(
+    fn read_batch_preallocated<G: AffineRepr>(
         &self,
         elements: &mut [G],
         compression: UseCompression,
