@@ -2,7 +2,7 @@
 
 use crate::{helpers::buffers::*, Phase1Parameters, ProvingSystem};
 use cfg_if::cfg_if;
-use setup_utils::{BatchDeserializer, BatchSerializer, Deserializer, Serializer, *};
+use setup_utils::*;
 
 use ark_ec::{pairing::Pairing, AffineRepr};
 
@@ -89,7 +89,7 @@ cfg_if! {
 
         /// Reads a list of group elements from the buffer to the provided `elements` slice
         /// and then checks that the elements are nonzero and in the prime order subgroup.
-        pub(crate) fn check_elements_are_nonzero_and_in_prime_order_subgroup<C: AffineRepr>(
+        pub(crate) fn check_elements_are_nonzero_and_in_prime_order_subgroup<C: AffineRepr + BatchGroupArithmetic>(
             (buffer, compression): (&[u8], UseCompression),
             (start, end): (usize, usize),
             elements: &mut [C],
@@ -108,11 +108,10 @@ cfg_if! {
             let prime_order_subgroup_check_pass = match (elements.len() > BATCH_SIZE, subgroup_check_mode) {
                 (_, SubgroupCheckMode::No) => true,
                 (true, SubgroupCheckMode::Auto) | (_, SubgroupCheckMode::Batched) => {
-                    todo!() // PITODO
-                    // match batch_verify_in_subgroup(elements, SECURITY_PARAM, &mut rand::thread_rng()) {
-                    //     Ok(()) => true,
-                    //     _ => false,
-                    // }
+                    match batch_verify_in_subgroup(elements, SECURITY_PARAM, &mut rand::thread_rng()) {
+                        Ok(()) => true,
+                        _ => false,
+                    }
                 }
                 (false, SubgroupCheckMode::Auto) | (_, SubgroupCheckMode::Direct) => {
                     cfg_iter!(elements).enumerate().all(|(i, p)| {

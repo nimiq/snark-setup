@@ -27,6 +27,9 @@ pub use elements::{
 mod helpers;
 pub use helpers::*;
 
+mod batch;
+pub use batch::*;
+
 mod io;
 pub use io::{buffer_size, BatchDeserializer, BatchSerializer, Deserializer, Serializer};
 

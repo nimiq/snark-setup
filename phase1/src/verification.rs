@@ -1,6 +1,10 @@
 use super::*;
 
-impl<'a, E: Pairing + Sync> Phase1<'a, E> {
+impl<'a, E: Pairing + Sync> Phase1<'a, E>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     /// Verifies that the accumulator was transformed correctly
     /// given the `PublicKey` and the so-far hash of the accumulator.
     /// This verifies a single chunk and checks only that the points
