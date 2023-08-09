@@ -3,7 +3,7 @@ use crate::{
     errors::{Error, VerificationError},
     Result,
 };
-use ark_ec::{pairing::Pairing, AffineRepr, CurveGroup, Group};
+use ark_ec::{pairing::Pairing, AffineRepr, CurveGroup, Group, VariableBaseMSM};
 use ark_ff::{BigInteger, Field, PrimeField};
 use ark_serialize::CanonicalSerialize;
 use ark_std::{cfg_chunks_mut, cfg_into_iter, cfg_iter, cfg_iter_mut, One, UniformRand, Zero};
@@ -375,8 +375,10 @@ pub fn merge_pairs<G: AffineRepr>(v1: &[G], v2: &[G]) -> (G, G) {
     let randomness: Vec<<G::ScalarField as PrimeField>::BigInt> =
         (0..v1.len()).map(|_| G::ScalarField::rand(rng).into_bigint()).collect();
 
-    let s = dense_multiexp(&v1, &randomness[..]).into_affine();
-    let sx = dense_multiexp(&v2, &randomness[..]).into_affine();
+    // let s = dense_multiexp(&v1, &randomness[..]).into_affine();
+    // let sx = dense_multiexp(&v2, &randomness[..]).into_affine();
+    let s = G::Group::msm_bigint(&v1, &randomness[..]).into_affine();
+    let sx = G::Group::msm_bigint(&v2, &randomness[..]).into_affine();
 
     (s, sx)
 }

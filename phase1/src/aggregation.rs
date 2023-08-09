@@ -821,22 +821,21 @@ mod tests {
     fn test_aggregation_mnt4_wrong_chunks() {
         aggregation_test::<MNT4_753>(4, 3 + 3 * 4, UseCompression::No, UseCompression::Yes, true);
     }
-    /*
-        #[test]
-        fn test_aggregation_mnt4() {
-            aggregation_test::<MNT4_753>(4, 3 + 3 * 4, UseCompression::Yes, UseCompression::Yes, false);
-            aggregation_test::<MNT4_753>(4, 3 + 3 * 4, UseCompression::No, UseCompression::Yes, false);
-            aggregation_test::<MNT4_753>(4, 3 + 3 * 4, UseCompression::No, UseCompression::No, false);
-            aggregation_test::<MNT4_753>(4, 3 + 3 * 4, UseCompression::Yes, UseCompression::No, false);
-        }
-    */
+
+    #[test]
+    fn test_aggregation_mnt4() {
+        aggregation_test::<MNT4_753>(4, 3 + 3 * 4, UseCompression::Yes, UseCompression::Yes, false);
+        aggregation_test::<MNT4_753>(4, 3 + 3 * 4, UseCompression::No, UseCompression::Yes, false);
+        aggregation_test::<MNT4_753>(4, 3 + 3 * 4, UseCompression::No, UseCompression::No, false);
+        aggregation_test::<MNT4_753>(4, 3 + 3 * 4, UseCompression::Yes, UseCompression::No, false);
+    }
 
     #[test]
     #[should_panic]
     fn test_aggregation_mnt6_wrong_chunks() {
         aggregation_test::<MNT6_753>(4, 3 + 3 * 4, UseCompression::No, UseCompression::Yes, true);
     }
-    /*
+
     #[test]
     fn test_aggregation_mnt6() {
         aggregation_test::<MNT6_753>(4, 3 + 3 * 4, UseCompression::Yes, UseCompression::Yes, false);
@@ -844,5 +843,4 @@ mod tests {
         aggregation_test::<MNT6_753>(4, 3 + 3 * 4, UseCompression::No, UseCompression::No, false);
         aggregation_test::<MNT6_753>(4, 3 + 3 * 4, UseCompression::Yes, UseCompression::No, false);
     }
-    */
 }
