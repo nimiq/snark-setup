@@ -74,7 +74,7 @@ pub(crate) fn iter_chunk(
 
 /// Takes a buffer, reads the group elements in it, exponentiates them to the
 /// provided `powers` and maybe to the `coeff`, and then writes them back
-pub(crate) fn apply_powers<C: AffineRepr>(
+pub(crate) fn apply_powers<C: AffineRepr + BatchGroupArithmetic>(
     (output, output_compressed): Output,
     (input, input_compressed, check_input_for_correctness): Input,
     (start, end): (usize, usize),

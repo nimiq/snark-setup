@@ -1,6 +1,10 @@
 use super::*;
 
-impl<'a, E: Pairing + Sync> Phase1<'a, E> {
+impl<'a, E: Pairing + Sync> Phase1<'a, E>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     ///
     /// Phase 1: Aggregation
     ///
@@ -366,7 +370,10 @@ mod tests {
         compressed_input: UseCompression,
         compressed_output: UseCompression,
         use_wrong_chunks: bool,
-    ) {
+    ) where
+        E::G1Affine: BatchGroupArithmetic,
+        E::G2Affine: BatchGroupArithmetic,
+    {
         let correctness = CheckForCorrectness::Full;
 
         for proving_system in &[ProvingSystem::Groth16, ProvingSystem::Marlin] {

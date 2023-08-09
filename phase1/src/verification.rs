@@ -766,7 +766,10 @@ mod tests {
         batch: usize,
         compressed_input: UseCompression,
         compressed_output: UseCompression,
-    ) {
+    ) where
+        E::G1Affine: BatchGroupArithmetic,
+        E::G2Affine: BatchGroupArithmetic,
+    {
         for proving_system in &[ProvingSystem::Groth16, ProvingSystem::Marlin] {
             for batch_exp_mode in
                 vec![BatchExpMode::Auto, BatchExpMode::Direct, BatchExpMode::BatchInversion].into_iter()
@@ -781,7 +784,7 @@ mod tests {
                 // Construct our keypair
                 let current_accumulator_hash = blank_hash();
                 let mut rng = derive_rng_from_seed(b"test_verify_transformation 1");
-                let (pubkey, privkey) = Phase1::key_generation(&mut rng, current_accumulator_hash.as_ref())
+                let (pub_key, priv_key) = Phase1::key_generation(&mut rng, current_accumulator_hash.as_ref())
                     .expect("could not generate keypair");
 
                 // transform the accumulator
@@ -792,18 +795,18 @@ mod tests {
                     compressed_output,
                     CheckForCorrectness::No,
                     batch_exp_mode,
-                    &privkey,
+                    &priv_key,
                     &parameters,
                 )
                 .unwrap();
                 // ensure that the key is not available to the verifier
-                drop(privkey);
+                drop(priv_key);
 
                 let res = Phase1::verification(
                     &input,
                     &output,
                     &mut new_challenge,
-                    &pubkey,
+                    &pub_key,
                     &current_accumulator_hash,
                     compressed_input,
                     compressed_output,
@@ -818,7 +821,7 @@ mod tests {
 
                 // subsequent participants must use the hash of the accumulator they received
                 let current_accumulator_hash = calculate_hash(&output);
-                let (pubkey, privkey) = Phase1::key_generation(&mut rng, current_accumulator_hash.as_ref())
+                let (pub_key, priv_key) = Phase1::key_generation(&mut rng, current_accumulator_hash.as_ref())
                     .expect("could not generate keypair");
 
                 // generate a new output vector for the 2nd participant's contribution
@@ -832,18 +835,18 @@ mod tests {
                     compressed_output,
                     CheckForCorrectness::No,
                     batch_exp_mode,
-                    &privkey,
+                    &priv_key,
                     &parameters,
                 )
                 .unwrap();
                 // ensure that the key is not available to the verifier
-                drop(privkey);
+                drop(priv_key);
 
                 let res = Phase1::verification(
                     &output,
                     &output_2,
                     &mut new_challenge_2,
-                    &pubkey,
+                    &pub_key,
                     &current_accumulator_hash,
                     compressed_output,
                     compressed_output,
@@ -868,7 +871,7 @@ mod tests {
                     &output,
                     &output_2,
                     &mut new_challenge_2,
-                    &pubkey,
+                    &pub_key,
                     &blank_hash(),
                     compressed_output,
                     compressed_output,
@@ -887,7 +890,7 @@ mod tests {
                 let res = Phase1::verification(
                     &output,
                     &output_2,
-                    &pubkey,
+                    &pub_key,
                     &current_accumulator_hash,
                     compressed_output,
                     compressed_output,
@@ -906,7 +909,10 @@ mod tests {
         batch: usize,
         compressed_input: UseCompression,
         compressed_output: UseCompression,
-    ) {
+    ) where
+        E::G1Affine: BatchGroupArithmetic,
+        E::G2Affine: BatchGroupArithmetic,
+    {
         let correctness = CheckForCorrectness::Full;
 
         for proving_system in &[ProvingSystem::Groth16, ProvingSystem::Marlin] {

@@ -1,6 +1,13 @@
 use ark_ec::pairing::Pairing as Engine;
 use phase1::{Phase1, Phase1Parameters, PublicKey};
-use setup_utils::{calculate_hash, print_hash, CheckForCorrectness, SubgroupCheckMode, UseCompression};
+use setup_utils::{
+    calculate_hash,
+    print_hash,
+    BatchGroupArithmetic,
+    CheckForCorrectness,
+    SubgroupCheckMode,
+    UseCompression,
+};
 
 use memmap::*;
 use std::{
@@ -25,7 +32,10 @@ pub fn transform_pok_and_correctness<T: Engine + Sync>(
     subgroup_check_mode: SubgroupCheckMode,
     ratio_check: bool,
     parameters: &Phase1Parameters<T>,
-) {
+) where
+    T::G1Affine: BatchGroupArithmetic,
+    T::G2Affine: BatchGroupArithmetic,
+{
     info!(
         "Will verify and decompress a contribution to accumulator for 2^{} powers of tau",
         parameters.total_size_in_log2

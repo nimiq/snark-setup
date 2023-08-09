@@ -73,7 +73,7 @@ mod test {
         // Construct our keypair using the RNG we created above
         let current_accumulator_hash = blank_hash();
         let mut rng = thread_rng();
-        let (_, privkey) =
+        let (_, priv_key) =
             Phase1::key_generation(&mut rng, current_accumulator_hash.as_ref()).expect("could not generate keypair");
 
         Phase1::computation(
@@ -83,7 +83,7 @@ mod test {
             UseCompression::No,
             CheckForCorrectness::No,
             BatchExpMode::Auto,
-            &privkey,
+            &priv_key,
             &parameters,
         )
         .unwrap();

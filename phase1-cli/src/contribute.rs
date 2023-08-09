@@ -1,5 +1,12 @@
 use phase1::{Phase1, Phase1Parameters};
-use setup_utils::{calculate_hash, print_hash, BatchExpMode, CheckForCorrectness, UseCompression};
+use setup_utils::{
+    calculate_hash,
+    print_hash,
+    BatchExpMode,
+    BatchGroupArithmetic,
+    CheckForCorrectness,
+    UseCompression,
+};
 
 use ark_ec::pairing::Pairing as Engine;
 
@@ -23,7 +30,10 @@ pub fn contribute<T: Engine + Sync>(
     batch_exp_mode: BatchExpMode,
     parameters: &Phase1Parameters<T>,
     mut rng: impl Rng,
-) {
+) where
+    T::G1Affine: BatchGroupArithmetic,
+    T::G2Affine: BatchGroupArithmetic,
+{
     // Try to load challenge file from disk.
     let reader = OpenOptions::new()
         .read(true)

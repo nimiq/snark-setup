@@ -1,4 +1,4 @@
-use crate::{BatchDeserializer, Error};
+use crate::{batch_verify_in_subgroup, BatchDeserializer, BatchGroupArithmetic, Error};
 use ark_ec::AffineRepr;
 use ark_ff::PrimeField;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Compress, Read, SerializationError, Validate, Write};
@@ -119,7 +119,7 @@ pub fn serialize<T: CanonicalSerialize, W: Write>(
     CanonicalSerialize::serialize_with_mode(element, writer, compressed)
 }
 
-pub fn check_subgroup<C: AffineRepr>(
+pub fn check_subgroup<C: AffineRepr + BatchGroupArithmetic>(
     elements: &[C],
     subgroup_check_mode: SubgroupCheckMode,
 ) -> core::result::Result<(), Error> {
@@ -128,11 +128,10 @@ pub fn check_subgroup<C: AffineRepr>(
     let prime_order_subgroup_check_pass = match (elements.len() > BATCH_SIZE, subgroup_check_mode) {
         (_, SubgroupCheckMode::No) => true,
         (true, SubgroupCheckMode::Auto) | (_, SubgroupCheckMode::Batched) => {
-            todo!() // PITODO
-            // match batch_verify_in_subgroup(elements, SECURITY_PARAM, &mut rand::thread_rng()) {
-            //     Ok(()) => true,
-            //     _ => false,
-            // }
+            match batch_verify_in_subgroup(elements, SECURITY_PARAM, &mut rand::thread_rng()) {
+                Ok(()) => true,
+                _ => false,
+            }
         }
         (false, SubgroupCheckMode::Auto) | (_, SubgroupCheckMode::Direct) => {
             // PITODO: double-check

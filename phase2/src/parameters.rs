@@ -9,7 +9,7 @@ cfg_if! {
     }
 }
 
-use super::keypair::{hash_cs_pubkeys, Keypair, PublicKey};
+use super::keypair::{hash_cs_pub_keys, Keypair, PublicKey};
 
 use crate::load_circuit::Matrices;
 use setup_utils::*;
@@ -66,7 +66,8 @@ impl<E: Pairing + PartialEq> PartialEq for MPCParameters<E> {
 
 impl<E: Pairing> MPCParameters<E>
 where
-    E::G1Affine: Neg<Output = E::G1Affine>,
+    E::G1Affine: Neg<Output = E::G1Affine> + BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
 {
     #[cfg(not(feature = "wasm"))]
     pub fn new_from_buffer(
@@ -317,7 +318,7 @@ where
         drop(private_key);
         self.contributions.push(public_key.clone());
 
-        // Return the pubkey's hash
+        // Return the pub_key's hash
         Ok(public_key.hash())
     }
 
@@ -329,17 +330,17 @@ where
     pub fn verify(&self, after: &Self) -> Result<Vec<[u8; 64]>> {
         let before = self;
 
-        let pubkey = if let Some(pubkey) = after.contributions.last() {
-            pubkey
+        let pub_key = if let Some(pub_key) = after.contributions.last() {
+            pub_key
         } else {
             // if there were no contributions then we should error
             return Err(Phase2Error::NoContributions.into());
         };
         // Current parameters should have consistent delta in G1
-        ensure_unchanged(pubkey.delta_after, after.params.delta_g1, InvariantKind::DeltaG1)?;
+        ensure_unchanged(pub_key.delta_after, after.params.delta_g1, InvariantKind::DeltaG1)?;
         // Current parameters should have consistent delta in G2
         check_same_ratio::<E>(
-            &(E::G1Affine::generator(), pubkey.delta_after),
+            &(E::G1Affine::generator(), pub_key.delta_after),
             &(E::G2Affine::generator(), after.params.vk.delta_g2),
             "Inconsistent G2 Delta",
         )?;
@@ -641,29 +642,29 @@ pub fn ensure_unchanged<T: PartialEq>(before: T, after: T, kind: InvariantKind) 
 pub fn verify_transcript<E: Pairing>(cs_hash: [u8; 64], contributions: &[PublicKey<E>]) -> Result<Vec<[u8; 64]>> {
     let mut result = vec![];
     let mut old_delta = E::G1Affine::generator();
-    for (i, pubkey) in contributions.iter().enumerate() {
-        let hash = hash_cs_pubkeys(cs_hash, &contributions[0..i], pubkey.s, pubkey.s_delta);
-        ensure_unchanged(&pubkey.transcript[..], &hash.as_ref()[..], InvariantKind::Transcript)?;
+    for (i, pub_key) in contributions.iter().enumerate() {
+        let hash = hash_cs_pub_keys(cs_hash, &contributions[0..i], pub_key.s, pub_key.s_delta);
+        ensure_unchanged(&pub_key.transcript[..], &hash.as_ref()[..], InvariantKind::Transcript)?;
 
         // generate the G2 point from the hash
         let r = hash_to_g2::<E>(hash.as_ref()).into_affine();
 
         // Check the signature of knowledge
         check_same_ratio::<E>(
-            &(pubkey.s, pubkey.s_delta),
-            &(r, pubkey.r_delta),
+            &(pub_key.s, pub_key.s_delta),
+            &(r, pub_key.r_delta),
             "Incorrect signature of knowledge",
         )?;
 
         // Check the change with the previous G1 Delta is consistent
         check_same_ratio::<E>(
-            &(old_delta, pubkey.delta_after),
-            &(r, pubkey.r_delta),
+            &(old_delta, pub_key.delta_after),
+            &(r, pub_key.r_delta),
             "Inconsistent G1 Delta",
         )?;
-        old_delta = pubkey.delta_after;
+        old_delta = pub_key.delta_after;
 
-        result.push(pubkey.hash());
+        result.push(pub_key.hash());
     }
 
     Ok(result)
@@ -721,7 +722,8 @@ mod tests {
 
     fn serialize_ceremony_curve<E: Pairing + PartialEq>()
     where
-        E::G1Affine: Neg<Output = E::G1Affine>,
+        E::G1Affine: Neg<Output = E::G1Affine> + BatchGroupArithmetic,
+        E::G2Affine: BatchGroupArithmetic,
     {
         let mpc = generate_ceremony::<E>();
 
@@ -749,7 +751,8 @@ mod tests {
     // then checking with itself should fail
     fn verify_with_self_fails_curve<E: Pairing>()
     where
-        E::G1Affine: Neg<Output = E::G1Affine>,
+        E::G1Affine: Neg<Output = E::G1Affine> + BatchGroupArithmetic,
+        E::G2Affine: BatchGroupArithmetic,
     {
         let mpc = generate_ceremony::<E>();
         let err = mpc.verify(&mpc);
@@ -769,7 +772,8 @@ mod tests {
     // contributing once and comparing with the previous step passes
     fn verify_curve<E: Pairing>()
     where
-        E::G1Affine: Neg<Output = E::G1Affine>,
+        E::G1Affine: Neg<Output = E::G1Affine> + BatchGroupArithmetic,
+        E::G2Affine: BatchGroupArithmetic,
     {
         Subscriber::builder()
             .with_target(false)
@@ -871,7 +875,8 @@ mod tests {
     // for the TestCircuit
     fn generate_ceremony<E: Pairing>() -> MPCParameters<E>
     where
-        E::G1Affine: Neg<Output = E::G1Affine>,
+        E::G1Affine: Neg<Output = E::G1Affine> + BatchGroupArithmetic,
+        E::G2Affine: BatchGroupArithmetic,
     {
         // the phase2 params are generated correctly,
         // even though the powers of tau are >> the circuit size

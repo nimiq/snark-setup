@@ -14,6 +14,7 @@ use setup_utils::{
     derive_rng_from_seed,
     from_slice,
     upgrade_correctness_check_config,
+    BatchGroupArithmetic,
     DEFAULT_CONTRIBUTE_CHECK_INPUT_CORRECTNESS,
     DEFAULT_VERIFY_CHECK_INPUT_CORRECTNESS,
     DEFAULT_VERIFY_CHECK_OUTPUT_CORRECTNESS,
@@ -31,7 +32,11 @@ use tracing_subscriber::{
     fmt::{time::ChronoUtc, Subscriber},
 };
 
-fn execute_cmd<E: Engine>(opts: Phase1Opts) {
+fn execute_cmd<E: Engine>(opts: Phase1Opts)
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     let curve = CurveParameters::<E>::new();
     let parameters = Phase1Parameters::<E>::new(
         opts.contribution_mode,

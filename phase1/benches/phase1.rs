@@ -119,7 +119,7 @@ fn benchmark_verification(c: &mut Criterion) {
             for proof_system in proving_system {
                 let parameters = Phase1Parameters::<Bls12_377>::new_full(proof_system, power, batch);
 
-                let (input, output, pubkey, current_accumulator_hash) = setup_verify(
+                let (input, output, pub_key, current_accumulator_hash) = setup_verify(
                     *compressed_input,
                     correctness,
                     *compressed_output,
@@ -136,7 +136,7 @@ fn benchmark_verification(c: &mut Criterion) {
                             Phase1::verification(
                                 &input,
                                 &output,
-                                &pubkey,
+                                &pub_key,
                                 &current_accumulator_hash,
                                 *compressed_input,
                                 *compressed_output,

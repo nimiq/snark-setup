@@ -21,7 +21,11 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
         batch_exp_mode: BatchExpMode,
         key: &PrivateKey<E>,
         parameters: &'a Phase1Parameters<E>,
-    ) -> Result<()> {
+    ) -> Result<()>
+    where
+        E::G1Affine: BatchGroupArithmetic,
+        E::G2Affine: BatchGroupArithmetic,
+    {
         let span = info_span!("phase1-computation");
         let _ = span.enter();
 
@@ -322,7 +326,10 @@ mod tests {
         batch: usize,
         compressed_input: UseCompression,
         compressed_output: UseCompression,
-    ) {
+    ) where
+        E::G1Affine: BatchGroupArithmetic,
+        E::G2Affine: BatchGroupArithmetic,
+    {
         let input_correctness = CheckForCorrectness::Full;
 
         for proving_system in &[ProvingSystem::Groth16, ProvingSystem::Marlin] {
@@ -340,7 +347,7 @@ mod tests {
                 // Construct our keypair using the RNG we created above
                 let current_accumulator_hash = blank_hash();
                 let mut rng = derive_rng_from_seed(b"curve_computation_test");
-                let (_, privkey) = Phase1::key_generation(&mut rng, current_accumulator_hash.as_ref())
+                let (_, priv_key) = Phase1::key_generation(&mut rng, current_accumulator_hash.as_ref())
                     .expect("could not generate keypair");
 
                 Phase1::computation(
@@ -350,7 +357,7 @@ mod tests {
                     compressed_output,
                     input_correctness,
                     batch_exp_mode,
-                    &privkey,
+                    &priv_key,
                     &parameters,
                 )
                 .unwrap();
@@ -360,7 +367,7 @@ mod tests {
 
                 match proving_system {
                     ProvingSystem::Groth16 => {
-                        let tau_powers = generate_powers_of_tau::<E>(&privkey.tau, 0, parameters.powers_g1_length);
+                        let tau_powers = generate_powers_of_tau::<E>(&priv_key.tau, 0, parameters.powers_g1_length);
                         batch_exp(
                             &mut before.tau_powers_g1,
                             &tau_powers[0..parameters.g1_chunk_size],
@@ -378,21 +385,21 @@ mod tests {
                         batch_exp(
                             &mut before.alpha_tau_powers_g1,
                             &tau_powers[0..parameters.other_chunk_size],
-                            Some(&privkey.alpha),
+                            Some(&priv_key.alpha),
                             batch_exp_mode,
                         )
                         .unwrap();
                         batch_exp(
                             &mut before.beta_tau_powers_g1,
                             &tau_powers[0..parameters.other_chunk_size],
-                            Some(&privkey.beta),
+                            Some(&priv_key.beta),
                             batch_exp_mode,
                         )
                         .unwrap();
-                        before.beta_g2 = before.beta_g2.mul(privkey.beta).into_affine();
+                        before.beta_g2 = before.beta_g2.mul(priv_key.beta).into_affine();
                     }
                     ProvingSystem::Marlin => {
-                        let tau_powers = generate_powers_of_tau::<E>(&privkey.tau, 0, parameters.powers_length);
+                        let tau_powers = generate_powers_of_tau::<E>(&priv_key.tau, 0, parameters.powers_length);
                         batch_exp(
                             &mut before.tau_powers_g1,
                             &tau_powers[0..parameters.powers_length],
@@ -402,7 +409,7 @@ mod tests {
                         .unwrap();
 
                         let degree_bound_powers = (0..parameters.total_size_in_log2)
-                            .map(|i| privkey.tau.pow([parameters.powers_length as u64 - 1 - (1 << i) + 2]))
+                            .map(|i| priv_key.tau.pow([parameters.powers_length as u64 - 1 - (1 << i) + 2]))
                             .collect::<Vec<_>>();
                         let mut g2_inverse_powers = degree_bound_powers.clone();
                         batch_inversion(&mut g2_inverse_powers);
@@ -417,20 +424,20 @@ mod tests {
 
                         let g1_degree_powers = degree_bound_powers
                             .into_iter()
-                            .map(|f| vec![f, f * &privkey.tau, f * &privkey.tau * &privkey.tau])
+                            .map(|f| vec![f, f * &priv_key.tau, f * &priv_key.tau * &priv_key.tau])
                             .flatten()
                             .collect::<Vec<_>>();
                         batch_exp(
                             &mut before.alpha_tau_powers_g1[3..3 + 3 * parameters.total_size_in_log2],
                             &g1_degree_powers,
-                            Some(&privkey.alpha),
+                            Some(&priv_key.alpha),
                             batch_exp_mode,
                         )
                         .unwrap();
                         batch_exp(
                             &mut before.alpha_tau_powers_g1[0..3],
                             &tau_powers[0..3],
-                            Some(&privkey.alpha),
+                            Some(&priv_key.alpha),
                             batch_exp_mode,
                         )
                         .unwrap();

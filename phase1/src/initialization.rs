@@ -64,7 +64,11 @@ mod tests {
     use ark_bw6_761::BW6_761;
     use ark_ec::AffineRepr;
 
-    fn curve_initialization_test<E: Pairing>(powers: usize, batch: usize, compression: UseCompression) {
+    fn curve_initialization_test<E: Pairing>(powers: usize, batch: usize, compression: UseCompression)
+    where
+        E::G1Affine: BatchGroupArithmetic,
+        E::G2Affine: BatchGroupArithmetic,
+    {
         for proving_system in &[ProvingSystem::Groth16, ProvingSystem::Marlin] {
             let parameters = Phase1Parameters::<E>::new_full(*proving_system, powers, batch);
             let expected_challenge_length = match compression {

@@ -22,7 +22,7 @@ pub struct PrivateKey<E: Pairing> {
     pub delta: E::ScalarField,
 }
 
-pub const PUBKEY_SIZE: usize = 544; // 96 * 2 + 48 * 2 * 3 + 64, assuming uncompressed elements
+pub const pub_key_SIZE: usize = 544; // 96 * 2 + 48 * 2 * 3 + 64, assuming uncompressed elements
 
 /// This allows others to verify that you contributed. The hash produced
 /// by `MPCParameters::contribute` is just a BLAKE2b hash of this object.
@@ -39,7 +39,7 @@ pub struct PublicKey<E: Pairing> {
     /// That element, taken to the contributor's secret delta.
     pub s_delta: E::G1Affine,
 
-    /// r is H(last_pubkey | s | s_delta), r_delta proves knowledge of delta
+    /// r is H(last_pub_key | s | s_delta), r_delta proves knowledge of delta
     pub r_delta: E::G2Affine,
 
     /// Hash of the transcript (used for mapping to r)
@@ -58,10 +58,10 @@ impl<E: Pairing> PublicKey<E> {
         response
     }
 
-    pub fn write_batch<W: Write>(mut writer: W, pubkeys: &[PublicKey<E>]) -> Result<()> {
-        writer.write_u32::<BigEndian>(pubkeys.len() as u32)?;
-        for pubkey in pubkeys {
-            pubkey.write(&mut writer)?;
+    pub fn write_batch<W: Write>(mut writer: W, pub_keys: &[PublicKey<E>]) -> Result<()> {
+        writer.write_u32::<BigEndian>(pub_keys.len() as u32)?;
+        for pub_key in pub_keys {
+            pub_key.write(&mut writer)?;
         }
         Ok(())
     }
@@ -131,7 +131,7 @@ impl<E: Pairing> Keypair<E> {
         let s_delta = s.mul(delta).into_affine();
 
         // Get the transcript
-        let transcript = hash_cs_pubkeys(cs_hash, contributions, s, s_delta);
+        let transcript = hash_cs_pub_keys(cs_hash, contributions, s, s_delta);
         // Compute delta s-pair in G2 by hashing the transcript and multiplying it by delta
         let r = hash_to_g2::<E>(&transcript[..]).into_affine();
         let r_delta = r.mul(delta).into_affine();
@@ -152,7 +152,7 @@ impl<E: Pairing> Keypair<E> {
 /// Returns the transcript hash so far.
 ///
 /// Internally calculates: `H(cs_hash | <contributions> | s | s_delta)`
-pub fn hash_cs_pubkeys<E: Pairing>(
+pub fn hash_cs_pub_keys<E: Pairing>(
     cs_hash: [u8; 64],
     contributions: &[PublicKey<E>],
     s: E::G1Affine,
@@ -163,8 +163,8 @@ pub fn hash_cs_pubkeys<E: Pairing>(
         let mut sink = HashWriter::new(sink);
 
         sink.write_all(&cs_hash[..]).unwrap();
-        for pubkey in contributions {
-            pubkey.write(&mut sink).unwrap();
+        for pub_key in contributions {
+            pub_key.write(&mut sink).unwrap();
         }
         // Write s and s_delta!
         sink.write_element(&s, UseCompression::Yes).unwrap();
@@ -219,10 +219,10 @@ mod tests {
         let delta_g1 = E::G1Affine::generator();
 
         let keypair = Keypair::<E>::new(delta_g1, [0; 64], &[], &mut rng);
-        let pubkey = keypair.public_key;
+        let pub_key = keypair.public_key;
 
         let mut writer = vec![];
-        pubkey.write(&mut writer).unwrap();
+        pub_key.write(&mut writer).unwrap();
 
         // 3 * 96 + 1 * 192 + 64
         assert_eq!(writer.len(), 544);
@@ -231,6 +231,6 @@ mod tests {
         let mut reader = vec![0; writer.len()];
         reader.copy_from_slice(&writer);
         let deserialized = PublicKey::<E>::read(&mut &reader[..]).unwrap();
-        assert_eq!(deserialized, pubkey);
+        assert_eq!(deserialized, pub_key);
     }
 }

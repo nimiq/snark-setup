@@ -252,7 +252,7 @@ fn split_transcript<E: Pairing>(input: &[u8], phase1_size: usize, size: usize, c
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::UseCompression;
+    use crate::{BatchGroupArithmetic, UseCompression};
     use phase1::{
         helpers::testing::{
             setup_verify,
@@ -269,7 +269,8 @@ mod tests {
 
     fn read_write_curve<E: Pairing>(powers: usize, prepared_phase1_size: usize, compressed: UseCompression)
     where
-        E::G1Affine: Neg<Output = E::G1Affine>,
+        E::G1Affine: Neg<Output = E::G1Affine> + BatchGroupArithmetic,
+        E::G2Affine: BatchGroupArithmetic,
     {
         fn compat(compression: UseCompression) -> UseCompressionPhase1 {
             match compression {

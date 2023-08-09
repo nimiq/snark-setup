@@ -59,7 +59,11 @@ mod tests {
     use ark_bls12_377::Bls12_377;
     use ark_bw6_761::BW6_761;
 
-    fn serialize_curve_test<E: Pairing + Sync>(compress: UseCompression, size: usize, batch: usize) {
+    fn serialize_curve_test<E: Pairing + Sync>(compress: UseCompression, size: usize, batch: usize)
+    where
+        E::G1Affine: BatchGroupArithmetic,
+        E::G2Affine: BatchGroupArithmetic,
+    {
         for proving_system in &[ProvingSystem::Groth16, ProvingSystem::Marlin] {
             // Create a small accumulator with some random state.
             let parameters = Phase1Parameters::<E>::new_full(*proving_system, size, batch);
@@ -69,7 +73,11 @@ mod tests {
         }
     }
 
-    fn decompress_curve_test<E: Pairing>() {
+    fn decompress_curve_test<E: Pairing>()
+    where
+        E::G1Affine: BatchGroupArithmetic,
+        E::G2Affine: BatchGroupArithmetic,
+    {
         for proving_system in &[ProvingSystem::Groth16, ProvingSystem::Marlin] {
             let parameters = Phase1Parameters::<E>::new_full(*proving_system, 2, 2);
             // generate a random input compressed accumulator

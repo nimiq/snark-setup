@@ -14,6 +14,7 @@ use setup_utils::{
     merge_pairs,
     serialize,
     BatchExpMode,
+    BatchGroupArithmetic,
     CheckForCorrectness,
     InvariantKind,
     Phase2Error,
@@ -64,7 +65,7 @@ pub fn verify<E: Pairing>(
 
     // VK parameters remain unchanged, except for Delta G2
     // which we check at the end of the function against the new contribution's
-    // pubkey
+    // pub_key
     ensure_unchanged(vk_before.alpha_g1, vk_after.alpha_g1, InvariantKind::AlphaG1)?;
     ensure_unchanged(beta_g1_before, beta_g1_after, InvariantKind::BetaG1)?;
     ensure_unchanged(vk_before.beta_g2, vk_after.beta_g2, InvariantKind::BetaG2)?;
@@ -204,18 +205,18 @@ pub fn verify<E: Pairing>(
 
     debug!("previous contributions were unchanged");
 
-    // Ensure that the new pubkey has been properly calculated
-    let pubkey = if let Some(pubkey) = contributions_after.last() {
-        pubkey
+    // Ensure that the new pub_key has been properly calculated
+    let pub_key = if let Some(pub_key) = contributions_after.last() {
+        pub_key
     } else {
         // if there were no new contributions then we should error
         return Err(Phase2Error::NoContributions.into());
     };
-    ensure_unchanged(pubkey.delta_after, delta_g1_after, InvariantKind::DeltaG1)?;
+    ensure_unchanged(pub_key.delta_after, delta_g1_after, InvariantKind::DeltaG1)?;
     debug!("public key was updated correctly");
 
     check_same_ratio::<E>(
-        &(E::G1Affine::generator(), pubkey.delta_after),
+        &(E::G1Affine::generator(), pub_key.delta_after),
         &(E::G2Affine::generator(), vk_after.delta_g2),
         "Inconsistent G2 Delta",
     )?;
@@ -241,7 +242,11 @@ pub fn contribute<E: Pairing, R: Rng>(
     compressed: UseCompression,
     check_correctness: CheckForCorrectness,
     batch_exp_mode: BatchExpMode,
-) -> Result<[u8; 64]> {
+) -> Result<[u8; 64]>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     let span = info_span!("phase2-contribute");
     let _enter = span.enter();
 
@@ -360,10 +365,10 @@ pub fn contribute<E: Pairing, R: Rng>(
     // leave the cs_hash unchanged (64 bytes size)
     buffer.seek(SeekFrom::Current(64))?;
 
-    // update the pubkeys length
+    // update the pub_keys length
     buffer.write_u32::<BigEndian>((contributions.len() + 1) as u32)?;
 
-    // advance to where the next pubkey would be in the buffer and append it
+    // advance to where the next pub_key would be in the buffer and append it
     buffer.seek(SeekFrom::Current((PublicKey::<E>::size() * contributions.len()) as i64))?;
     public_key.write(&mut buffer)?;
 
@@ -384,7 +389,7 @@ fn skip_vec<C: AffineRepr, B: Read + Seek>(mut buffer: B) -> Result<()> {
 /// The first 8 bytes read from the buffer are the vector's length. The result
 /// is written back to the buffer in place
 #[allow(clippy::cognitive_complexity)]
-fn chunked_mul_queries<C: AffineRepr>(
+fn chunked_mul_queries<C: AffineRepr + BatchGroupArithmetic>(
     buffer: &mut [u8],
     query_len: usize,
     element: &C::ScalarField,
@@ -439,7 +444,7 @@ fn chunked_mul_queries<C: AffineRepr>(
 
 /// Deserializes `num_els` elements, multiplies them by `element`
 /// and writes them back in place
-fn mul_query<C: AffineRepr, B: Read + Write + Seek>(
+fn mul_query<C: AffineRepr + BatchGroupArithmetic, B: Read + Write + Seek>(
     mut buffer: B,
     element: &C::ScalarField,
     num_els: usize,

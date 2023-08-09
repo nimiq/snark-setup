@@ -20,12 +20,13 @@ use phase2::{
     parameters::{circuit_to_qap, MPCParameters, Phase2ContributionMode},
 };
 use rand::{thread_rng, Rng};
-use setup_utils::{derive_rng_from_seed, BatchExpMode, Groth16Params, UseCompression};
+use setup_utils::{derive_rng_from_seed, BatchExpMode, BatchGroupArithmetic, Groth16Params, UseCompression};
 
 fn generate_mpc_parameters<E, C>(c: C, rng: &mut impl Rng) -> MPCParameters<E>
 where
     E: Pairing,
-    E::G1Affine: Neg<Output = E::G1Affine>,
+    E::G1Affine: Neg<Output = E::G1Affine> + BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
     C: Clone + ConstraintSynthesizer<E::ScalarField>,
 {
     // perform the MPC on only the amount of constraints required for the circuit
@@ -106,7 +107,8 @@ where
 fn generate_mpc_parameters_chunked<E, C>(c: C) -> MPCParameters<E>
 where
     E: Pairing,
-    E::G1Affine: Neg<Output = E::G1Affine>,
+    E::G1Affine: Neg<Output = E::G1Affine> + BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
     C: Clone + ConstraintSynthesizer<E::ScalarField>,
 {
     // perform the MPC on only the amount of constraints required for the circuit
@@ -224,7 +226,8 @@ fn test_groth_bw6() {
 
 fn groth_test_curve<E: Pairing>()
 where
-    E::G1Affine: Neg<Output = E::G1Affine>,
+    E::G1Affine: Neg<Output = E::G1Affine> + BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
 {
     for contribution_mode in &[Phase2ContributionMode::Full, Phase2ContributionMode::Chunked] {
         let rng = &mut thread_rng();
