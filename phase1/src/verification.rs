@@ -756,6 +756,8 @@ mod tests {
 
     use ark_bls12_377::Bls12_377;
     use ark_bw6_761::BW6_761;
+    use ark_mnt4_753::MNT4_753;
+    use ark_mnt6_753::MNT6_753;
 
     fn full_verification_test<E: Pairing>(
         total_size_in_log2: usize,
@@ -1099,9 +1101,46 @@ mod tests {
     }
 
     #[test]
+    fn test_chunk_verification_bw6_761() {
+        chunk_verification_test::<BW6_761>(4, 3 + 3 * 4, UseCompression::Yes, UseCompression::Yes);
+        chunk_verification_test::<BW6_761>(4, 3 + 3 * 4, UseCompression::No, UseCompression::No);
+        chunk_verification_test::<BW6_761>(4, 3 + 3 * 4, UseCompression::Yes, UseCompression::No);
+    }
+
+    #[test]
     fn test_chunk_verification_bls12_377() {
         chunk_verification_test::<Bls12_377>(4, 3 + 3 * 4, UseCompression::Yes, UseCompression::Yes);
         chunk_verification_test::<Bls12_377>(4, 3 + 3 * 4, UseCompression::No, UseCompression::No);
         chunk_verification_test::<Bls12_377>(4, 3 + 3 * 4, UseCompression::Yes, UseCompression::No);
+    }
+
+    #[test]
+    fn test_verification_mnt4_753() {
+        full_verification_test::<MNT4_753>(4, 3 + 3 * 4, UseCompression::Yes, UseCompression::Yes);
+        full_verification_test::<MNT4_753>(4, 3 + 3 * 4, UseCompression::No, UseCompression::No);
+        full_verification_test::<MNT4_753>(4, 3 + 3 * 4, UseCompression::Yes, UseCompression::No);
+        full_verification_test::<MNT4_753>(4, 3 + 3 * 4, UseCompression::No, UseCompression::Yes);
+    }
+
+    #[test]
+    fn test_verification_mnt6_753() {
+        full_verification_test::<MNT6_753>(4, 3 + 3 * 4, UseCompression::Yes, UseCompression::Yes);
+        full_verification_test::<MNT6_753>(4, 3 + 3 * 4, UseCompression::No, UseCompression::No);
+        full_verification_test::<MNT6_753>(4, 3 + 3 * 4, UseCompression::Yes, UseCompression::No);
+        full_verification_test::<MNT6_753>(4, 3 + 3 * 4, UseCompression::No, UseCompression::Yes);
+    }
+
+    #[test]
+    fn test_chunk_verification_mnt4_753() {
+        chunk_verification_test::<MNT4_753>(4, 3 + 3 * 4, UseCompression::Yes, UseCompression::Yes);
+        chunk_verification_test::<MNT4_753>(4, 3 + 3 * 4, UseCompression::No, UseCompression::No);
+        chunk_verification_test::<MNT4_753>(4, 3 + 3 * 4, UseCompression::Yes, UseCompression::No);
+    }
+
+    #[test]
+    fn test_chunk_verification_mnt6_753() {
+        chunk_verification_test::<MNT6_753>(4, 3 + 3 * 4, UseCompression::Yes, UseCompression::Yes);
+        chunk_verification_test::<MNT6_753>(4, 3 + 3 * 4, UseCompression::No, UseCompression::No);
+        chunk_verification_test::<MNT6_753>(4, 3 + 3 * 4, UseCompression::Yes, UseCompression::No);
     }
 }

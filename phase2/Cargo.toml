@@ -56,6 +56,9 @@ web-sys = { version = "0.3", features = ["console"], optional = true }
 [dev-dependencies]
 phase1 = { path = "../phase1", features = ["testing"] }
 phase2 = { path = "./", features = ["testing"] }
+
+ark-mnt4-753 = "0.4"
+ark-mnt6-753 = "0.4"
 wasm-bindgen-test = { version = "0.3" }
 
 rusty-hook = { version = "0.11" }

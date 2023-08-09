@@ -324,6 +324,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-mnt4-753"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d27256f8a5cfb4ac27f43cabfbadf45ab60a153a8f65a3474b4c89e48fd35e40"
+dependencies = [
+ "ark-ec 0.4.2",
+ "ark-ff 0.4.2",
+ "ark-std 0.4.0",
+]
+
+[[package]]
+name = "ark-mnt6-753"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "380c58d43c24fd113d41094f5e183e9a2e6ef8bbc8a281e304bfd5076fda7e7f"
+dependencies = [
+ "ark-ec 0.4.2",
+ "ark-ff 0.4.2",
+ "ark-mnt4-753",
+ "ark-std 0.4.0",
+]
+
+[[package]]
 name = "ark-nonnative-field"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1662,6 +1685,8 @@ dependencies = [
  "ark-ec 0.4.2",
  "ark-ff 0.4.2",
  "ark-marlin",
+ "ark-mnt4-753",
+ "ark-mnt6-753",
  "ark-poly 0.4.2",
  "ark-poly-commit 0.4.0",
  "ark-relations 0.4.0",
@@ -1713,6 +1738,8 @@ dependencies = [
  "ark-ec 0.4.2",
  "ark-ff 0.4.2",
  "ark-groth16",
+ "ark-mnt4-753",
+ "ark-mnt6-753",
  "ark-relations 0.4.0",
  "ark-serialize 0.4.2",
  "ark-std 0.4.0",

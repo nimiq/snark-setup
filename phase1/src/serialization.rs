@@ -58,6 +58,8 @@ mod tests {
 
     use ark_bls12_377::Bls12_377;
     use ark_bw6_761::BW6_761;
+    use ark_mnt4_753::MNT4_753;
+    use ark_mnt6_753::MNT6_753;
 
     fn serialize_curve_test<E: Pairing + Sync>(compress: UseCompression, size: usize, batch: usize) {
         for proving_system in &[ProvingSystem::Groth16, ProvingSystem::Marlin] {
@@ -126,6 +128,46 @@ mod tests {
         // or _bigger_ than any of the G1/G2 vector sizes.
         for batch in 1..10 {
             serialize_curve_test::<Bls12_377>(UseCompression::Yes, 2, batch);
+        }
+    }
+
+    #[test]
+    fn test_serialization_mnt4_753() {
+        serialize_curve_test::<MNT4_753>(UseCompression::Yes, 2, 2);
+        serialize_curve_test::<MNT4_753>(UseCompression::No, 2, 2);
+    }
+
+    #[test]
+    fn test_decompress_mnt4_753() {
+        decompress_curve_test::<MNT4_753>();
+    }
+
+    #[test]
+    fn test_serialization_multiple_batches_mnt4_753() {
+        // This test ensures that we can serialize for batches which are smaller, equal
+        // or _bigger_ than any of the G1/G2 vector sizes.
+        for batch in 1..10 {
+            serialize_curve_test::<MNT4_753>(UseCompression::Yes, 2, batch);
+        }
+    }
+
+    #[test]
+    fn test_serialization_mnt6_753() {
+        serialize_curve_test::<MNT6_753>(UseCompression::Yes, 2, 2);
+        serialize_curve_test::<MNT6_753>(UseCompression::No, 2, 2);
+    }
+
+    #[test]
+    fn test_decompress_mnt6_753() {
+        decompress_curve_test::<MNT6_753>();
+    }
+
+    #[test]
+    fn test_serialization_multiple_batches_mnt6_753() {
+        // This test ensures that we can serialize for batches which are smaller, equal
+        // or _bigger_ than any of the G1/G2 vector sizes.
+        for batch in 1..10 {
+            serialize_curve_test::<MNT6_753>(UseCompression::Yes, 2, batch);
         }
     }
 }

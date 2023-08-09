@@ -6,6 +6,8 @@ use ark_bw6_761::BW6_761;
 use ark_ec::pairing::Pairing;
 use ark_ff::Field;
 use ark_groth16::{prepare_verifying_key, Groth16, ProvingKey};
+use ark_mnt4_753::MNT4_753;
+use ark_mnt6_753::MNT6_753;
 use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystem, SynthesisMode};
 use phase1::{
     helpers::testing::{setup_verify, CheckForCorrectness},
@@ -222,6 +224,16 @@ fn test_groth_bls12_381() {
 #[test]
 fn test_groth_bw6() {
     groth_test_curve::<BW6_761>()
+}
+
+#[test]
+fn test_groth_mnt4_753() {
+    groth_test_curve::<MNT4_753>()
+}
+
+#[test]
+fn test_groth_mnt6_753() {
+    groth_test_curve::<MNT6_753>()
 }
 
 fn groth_test_curve<E: Pairing>()

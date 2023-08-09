@@ -38,3 +38,28 @@ groth16 = { git = "https://github.com/celo-org/zexe", package = "groth16", defau
 
 [patch.'https://github.com/scipr-lab/poly-commit']
 poly-commit = { git = "https://github.com/celo-org/poly-commit", rev = "4feda97c665a983304fabff789c76baadff08201" }
+
+# Force arkworks to be built with optimization level 2.
+[profile.dev.package.ark-ff]
+opt-level = 2
+
+[profile.test.package.ark-ff]
+opt-level = 2
+
+[profile.dev.package.ark-ec]
+opt-level = 2
+
+[profile.test.package.ark-ec]
+opt-level = 2
+
+[profile.dev.package.ark-mnt4-753]
+opt-level = 2
+
+[profile.test.package.ark-mnt4-753]
+opt-level = 2
+
+[profile.dev.package.ark-mnt6-753]
+opt-level = 2
+
+[profile.test.package.ark-mnt6-753]
+opt-level = 2

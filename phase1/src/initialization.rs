@@ -63,6 +63,8 @@ mod tests {
     use ark_bls12_377::Bls12_377;
     use ark_bw6_761::BW6_761;
     use ark_ec::AffineRepr;
+    use ark_mnt4_753::MNT4_753;
+    use ark_mnt6_753::MNT6_753;
 
     fn curve_initialization_test<E: Pairing>(powers: usize, batch: usize, compression: UseCompression) {
         for proving_system in &[ProvingSystem::Groth16, ProvingSystem::Marlin] {
@@ -126,5 +128,25 @@ mod tests {
     #[test]
     fn test_initialization_bw6_761_uncompressed() {
         curve_initialization_test::<BW6_761>(4, 4, UseCompression::No);
+    }
+
+    #[test]
+    fn test_initialization_mnt4_753_compressed() {
+        curve_initialization_test::<MNT4_753>(4, 4, UseCompression::Yes);
+    }
+
+    #[test]
+    fn test_initialization_mnt4_753_uncompressed() {
+        curve_initialization_test::<MNT4_753>(4, 4, UseCompression::No);
+    }
+
+    #[test]
+    fn test_initialization_mnt6_753_compressed() {
+        curve_initialization_test::<MNT6_753>(4, 4, UseCompression::Yes);
+    }
+
+    #[test]
+    fn test_initialization_mnt6_753_uncompressed() {
+        curve_initialization_test::<MNT6_753>(4, 4, UseCompression::No);
     }
 }

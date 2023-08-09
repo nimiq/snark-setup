@@ -1,7 +1,8 @@
 use std::ops::Mul;
 
-use super::*;
 use ark_ff::{batch_inversion, Field};
+
+use super::*;
 
 impl<'a, E: Pairing + Sync> Phase1<'a, E> {
     ///
@@ -316,6 +317,8 @@ mod tests {
     use ark_bls12_377::Bls12_377;
     use ark_bw6_761::BW6_761;
     use ark_ec::CurveGroup;
+    use ark_mnt4_753::MNT4_753;
+    use ark_mnt6_753::MNT6_753;
 
     fn curve_computation_test<E: Pairing>(
         powers: usize,
@@ -485,5 +488,51 @@ mod tests {
 
         // Works even if the batch is larger than the powers
         curve_computation_test::<BW6_761>(6, 128, UseCompression::No, UseCompression::No);
+    }
+
+    #[test]
+    fn test_computation_mnt4_753_compressed() {
+        // Receives a compressed/uncompressed input, contributes to it, and produces a compressed/uncompressed output
+        curve_computation_test::<MNT4_753>(2, 2, UseCompression::Yes, UseCompression::Yes);
+        curve_computation_test::<MNT4_753>(2, 2, UseCompression::No, UseCompression::Yes);
+        curve_computation_test::<MNT4_753>(2, 2, UseCompression::Yes, UseCompression::No);
+
+        // Works even when the batch is larger than the powers
+        curve_computation_test::<MNT4_753>(6, 128, UseCompression::Yes, UseCompression::Yes);
+        curve_computation_test::<MNT4_753>(6, 128, UseCompression::No, UseCompression::Yes);
+        curve_computation_test::<MNT4_753>(6, 128, UseCompression::Yes, UseCompression::No);
+    }
+
+    #[test]
+    fn test_computation_mnt4_753_uncompressed() {
+        // Receives an uncompressed input, contributes to it, and produces an uncompressed output
+        curve_computation_test::<MNT4_753>(3, 4, UseCompression::No, UseCompression::No);
+        curve_computation_test::<MNT4_753>(6, 64, UseCompression::No, UseCompression::No);
+
+        // Works even if the batch is larger than the powers
+        curve_computation_test::<MNT4_753>(6, 128, UseCompression::No, UseCompression::No);
+    }
+
+    #[test]
+    fn test_computation_mnt6_753_compressed() {
+        // Receives a compressed/uncompressed input, contributes to it, and produces a compressed/uncompressed output
+        curve_computation_test::<MNT6_753>(2, 2, UseCompression::Yes, UseCompression::Yes);
+        curve_computation_test::<MNT6_753>(2, 2, UseCompression::No, UseCompression::Yes);
+        curve_computation_test::<MNT6_753>(2, 2, UseCompression::Yes, UseCompression::No);
+
+        // Works even when the batch is larger than the powers
+        curve_computation_test::<MNT6_753>(6, 128, UseCompression::Yes, UseCompression::Yes);
+        curve_computation_test::<MNT6_753>(6, 128, UseCompression::No, UseCompression::Yes);
+        curve_computation_test::<MNT6_753>(6, 128, UseCompression::Yes, UseCompression::No);
+    }
+
+    #[test]
+    fn test_computation_mnt6_753_uncompressed() {
+        // Receives an uncompressed input, contributes to it, and produces an uncompressed output
+        curve_computation_test::<MNT6_753>(3, 4, UseCompression::No, UseCompression::No);
+        curve_computation_test::<MNT6_753>(6, 64, UseCompression::No, UseCompression::No);
+
+        // Works even if the batch is larger than the powers
+        curve_computation_test::<MNT6_753>(6, 128, UseCompression::No, UseCompression::No);
     }
 }
