@@ -1,5 +1,5 @@
 use phase1::{Phase1, Phase1Parameters};
-use setup_utils::{calculate_hash, print_hash, BatchGroupArithmetic, CheckForCorrectness, UseCompression};
+use setup_utils::{calculate_hash, print_hash, CheckForCorrectness, UseCompression};
 
 use ark_ec::pairing::Pairing as Engine;
 
@@ -11,10 +11,7 @@ pub fn transform_ratios<T: Engine + Sync>(
     response_filename: &str,
     check_input_correctness: CheckForCorrectness,
     parameters: &Phase1Parameters<T>,
-) where
-    T::G1Affine: BatchGroupArithmetic,
-    T::G2Affine: BatchGroupArithmetic,
-{
+) {
     info!(
         "Will verify and decompress a contribution to accumulator for 2^{} powers of tau",
         parameters.total_size_in_log2

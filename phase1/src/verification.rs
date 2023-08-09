@@ -1,10 +1,6 @@
 use super::*;
 
-impl<'a, E: Pairing + Sync> Phase1<'a, E>
-where
-    E::G1Affine: BatchGroupArithmetic,
-    E::G2Affine: BatchGroupArithmetic,
-{
+impl<'a, E: Pairing + Sync> Phase1<'a, E> {
     /// Verifies that the accumulator was transformed correctly
     /// given the `PublicKey` and the so-far hash of the accumulator.
     /// This verifies a single chunk and checks only that the points
@@ -766,10 +762,7 @@ mod tests {
         batch: usize,
         compressed_input: UseCompression,
         compressed_output: UseCompression,
-    ) where
-        E::G1Affine: BatchGroupArithmetic,
-        E::G2Affine: BatchGroupArithmetic,
-    {
+    ) {
         for proving_system in &[ProvingSystem::Groth16, ProvingSystem::Marlin] {
             for batch_exp_mode in
                 vec![BatchExpMode::Auto, BatchExpMode::Direct, BatchExpMode::BatchInversion].into_iter()
@@ -909,10 +902,7 @@ mod tests {
         batch: usize,
         compressed_input: UseCompression,
         compressed_output: UseCompression,
-    ) where
-        E::G1Affine: BatchGroupArithmetic,
-        E::G2Affine: BatchGroupArithmetic,
-    {
+    ) {
         let correctness = CheckForCorrectness::Full;
 
         for proving_system in &[ProvingSystem::Groth16, ProvingSystem::Marlin] {

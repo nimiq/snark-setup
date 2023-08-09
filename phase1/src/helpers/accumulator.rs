@@ -41,9 +41,7 @@ cfg_if! {
         use crate::PublicKey;
         /// Given a public key and the accumulator's digest, it hashes each G1 element
         /// along with the digest, and then hashes it to G2.
-        pub(crate) fn compute_g2_s_key<E: Pairing>(key: &PublicKey<E>, digest: &[u8]) -> Result<[E::G2Affine; 3]> where
-        E::G1Affine: BatchGroupArithmetic,
-        E::G2Affine: BatchGroupArithmetic,{
+        pub(crate) fn compute_g2_s_key<E: Pairing>(key: &PublicKey<E>, digest: &[u8]) -> Result<[E::G2Affine; 3]> {
             Ok([
                 compute_g2_s::<E>(&digest, &key.tau_g1.0, &key.tau_g1.1, 0)?,
                 compute_g2_s::<E>(&digest, &key.alpha_g1.0, &key.alpha_g1.1, 1)?,
@@ -91,7 +89,7 @@ cfg_if! {
 
         /// Reads a list of group elements from the buffer to the provided `elements` slice
         /// and then checks that the elements are nonzero and in the prime order subgroup.
-        pub(crate) fn check_elements_are_nonzero_and_in_prime_order_subgroup<C: AffineRepr + BatchGroupArithmetic>(
+        pub(crate) fn check_elements_are_nonzero_and_in_prime_order_subgroup<C: AffineRepr>(
             (buffer, compression): (&[u8], UseCompression),
             (start, end): (usize, usize),
             elements: &mut [C],
@@ -110,10 +108,20 @@ cfg_if! {
             let prime_order_subgroup_check_pass = match (elements.len() > BATCH_SIZE, subgroup_check_mode) {
                 (_, SubgroupCheckMode::No) => true,
                 (true, SubgroupCheckMode::Auto) | (_, SubgroupCheckMode::Batched) => {
-                    match batch_verify_in_subgroup(elements, SECURITY_PARAM, &mut rand::thread_rng()) {
-                        Ok(()) => true,
-                        _ => false,
-                    }
+                    // match batch_verify_in_subgroup(elements, SECURITY_PARAM, &mut rand::thread_rng()) {
+                    //     Ok(()) => true,
+                    //     _ => false,
+                    // }
+                    // PITODO
+                    eprintln!("Batched mode currently disabled");
+                    cfg_iter!(elements).enumerate().all(|(i, p)| {
+                        let res = p.mul_bigint(<C::ScalarField as PrimeField>::MODULUS)
+                            .is_zero();
+                        if !res {
+                            warn!("Wasn't in subgroup {} index {}", p, i)
+                        }
+                        res
+                    })
                 }
                 (false, SubgroupCheckMode::Auto) | (_, SubgroupCheckMode::Direct) => {
                     cfg_iter!(elements).enumerate().all(|(i, p)| {
@@ -191,9 +199,7 @@ cfg_if! {
             output: &mut [u8],
             check_input_for_correctness: CheckForCorrectness,
             parameters: &Phase1Parameters<E>,
-        ) -> Result<()> where
-        E::G1Affine: BatchGroupArithmetic,
-        E::G2Affine: BatchGroupArithmetic,{
+        ) -> Result<()> {
             let compressed_input = UseCompression::Yes;
             let compressed_output = UseCompression::No;
 
@@ -300,11 +306,7 @@ pub fn serialize<E: Pairing>(
     output: &mut [u8],
     compressed: UseCompression,
     parameters: &Phase1Parameters<E>,
-) -> Result<()>
-where
-    E::G1Affine: BatchGroupArithmetic,
-    E::G2Affine: BatchGroupArithmetic,
-{
+) -> Result<()> {
     let (in_tau_g1, in_tau_g2, in_alpha_g1, in_beta_g1, in_beta_g2) = elements;
     let (tau_g1, tau_g2, alpha_g1, beta_g1, beta_g2) = split_mut(output, parameters, compressed);
 
@@ -327,11 +329,7 @@ pub fn deserialize<E: Pairing>(
     compressed: UseCompression,
     check_input_for_correctness: CheckForCorrectness,
     parameters: &Phase1Parameters<E>,
-) -> Result<AccumulatorElements<E>>
-where
-    E::G1Affine: BatchGroupArithmetic,
-    E::G2Affine: BatchGroupArithmetic,
-{
+) -> Result<AccumulatorElements<E>> {
     // Get an immutable reference to the input chunks
     let (in_tau_g1, in_tau_g2, in_alpha_g1, in_beta_g1, in_beta_g2) = split(&input, parameters, compressed);
 

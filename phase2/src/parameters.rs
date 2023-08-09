@@ -66,8 +66,7 @@ impl<E: Pairing + PartialEq> PartialEq for MPCParameters<E> {
 
 impl<E: Pairing> MPCParameters<E>
 where
-    E::G1Affine: Neg<Output = E::G1Affine> + BatchGroupArithmetic,
-    E::G2Affine: BatchGroupArithmetic,
+    E::G1Affine: Neg<Output = E::G1Affine>,
 {
     #[cfg(not(feature = "wasm"))]
     pub fn new_from_buffer(
@@ -722,8 +721,7 @@ mod tests {
 
     fn serialize_ceremony_curve<E: Pairing + PartialEq>()
     where
-        E::G1Affine: Neg<Output = E::G1Affine> + BatchGroupArithmetic,
-        E::G2Affine: BatchGroupArithmetic,
+        E::G1Affine: Neg<Output = E::G1Affine>,
     {
         let mpc = generate_ceremony::<E>();
 
@@ -751,8 +749,7 @@ mod tests {
     // then checking with itself should fail
     fn verify_with_self_fails_curve<E: Pairing>()
     where
-        E::G1Affine: Neg<Output = E::G1Affine> + BatchGroupArithmetic,
-        E::G2Affine: BatchGroupArithmetic,
+        E::G1Affine: Neg<Output = E::G1Affine>,
     {
         let mpc = generate_ceremony::<E>();
         let err = mpc.verify(&mpc);
@@ -772,8 +769,7 @@ mod tests {
     // contributing once and comparing with the previous step passes
     fn verify_curve<E: Pairing>()
     where
-        E::G1Affine: Neg<Output = E::G1Affine> + BatchGroupArithmetic,
-        E::G2Affine: BatchGroupArithmetic,
+        E::G1Affine: Neg<Output = E::G1Affine>,
     {
         Subscriber::builder()
             .with_target(false)
@@ -875,8 +871,7 @@ mod tests {
     // for the TestCircuit
     fn generate_ceremony<E: Pairing>() -> MPCParameters<E>
     where
-        E::G1Affine: Neg<Output = E::G1Affine> + BatchGroupArithmetic,
-        E::G2Affine: BatchGroupArithmetic,
+        E::G1Affine: Neg<Output = E::G1Affine>,
     {
         // the phase2 params are generated correctly,
         // even though the powers of tau are >> the circuit size

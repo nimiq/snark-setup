@@ -3,11 +3,7 @@ use std::ops::Mul;
 use super::*;
 use ark_ff::{batch_inversion, Field};
 
-impl<'a, E: Pairing + Sync> Phase1<'a, E>
-where
-    E::G1Affine: BatchGroupArithmetic,
-    E::G2Affine: BatchGroupArithmetic,
-{
+impl<'a, E: Pairing + Sync> Phase1<'a, E> {
     ///
     /// Phase 1 - Computation: Steps 5, 6, and 7
     ///
@@ -25,11 +21,7 @@ where
         batch_exp_mode: BatchExpMode,
         key: &PrivateKey<E>,
         parameters: &'a Phase1Parameters<E>,
-    ) -> Result<()>
-    where
-        E::G1Affine: BatchGroupArithmetic,
-        E::G2Affine: BatchGroupArithmetic,
-    {
+    ) -> Result<()> {
         let span = info_span!("phase1-computation");
         let _ = span.enter();
 
@@ -330,10 +322,7 @@ mod tests {
         batch: usize,
         compressed_input: UseCompression,
         compressed_output: UseCompression,
-    ) where
-        E::G1Affine: BatchGroupArithmetic,
-        E::G2Affine: BatchGroupArithmetic,
-    {
+    ) {
         let input_correctness = CheckForCorrectness::Full;
 
         for proving_system in &[ProvingSystem::Groth16, ProvingSystem::Marlin] {

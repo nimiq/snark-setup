@@ -260,7 +260,6 @@ mod tests {
             CheckForCorrectness as CheckForCorrectnessPhase1,
             UseCompression as UseCompressionPhase1,
         },
-        BatchGroupArithmetic,
         Phase1,
         Phase1Parameters,
         ProvingSystem,
@@ -270,8 +269,7 @@ mod tests {
 
     fn read_write_curve<E: Pairing>(powers: usize, prepared_phase1_size: usize, compressed: UseCompression)
     where
-        E::G1Affine: Neg<Output = E::G1Affine> + BatchGroupArithmetic,
-        E::G2Affine: BatchGroupArithmetic,
+        E::G1Affine: Neg<Output = E::G1Affine>,
     {
         fn compat(compression: UseCompression) -> UseCompressionPhase1 {
             match compression {

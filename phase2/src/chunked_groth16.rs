@@ -14,7 +14,6 @@ use setup_utils::{
     merge_pairs,
     serialize,
     BatchExpMode,
-    BatchGroupArithmetic,
     CheckForCorrectness,
     InvariantKind,
     Phase2Error,
@@ -242,11 +241,7 @@ pub fn contribute<E: Pairing, R: Rng>(
     compressed: UseCompression,
     check_correctness: CheckForCorrectness,
     batch_exp_mode: BatchExpMode,
-) -> Result<[u8; 64]>
-where
-    E::G1Affine: BatchGroupArithmetic,
-    E::G2Affine: BatchGroupArithmetic,
-{
+) -> Result<[u8; 64]> {
     let span = info_span!("phase2-contribute");
     let _enter = span.enter();
 
@@ -389,7 +384,7 @@ fn skip_vec<C: AffineRepr, B: Read + Seek>(mut buffer: B) -> Result<()> {
 /// The first 8 bytes read from the buffer are the vector's length. The result
 /// is written back to the buffer in place
 #[allow(clippy::cognitive_complexity)]
-fn chunked_mul_queries<C: AffineRepr + BatchGroupArithmetic>(
+fn chunked_mul_queries<C: AffineRepr>(
     buffer: &mut [u8],
     query_len: usize,
     element: &C::ScalarField,
@@ -444,7 +439,7 @@ fn chunked_mul_queries<C: AffineRepr + BatchGroupArithmetic>(
 
 /// Deserializes `num_els` elements, multiplies them by `element`
 /// and writes them back in place
-fn mul_query<C: AffineRepr + BatchGroupArithmetic, B: Read + Write + Seek>(
+fn mul_query<C: AffineRepr, B: Read + Write + Seek>(
     mut buffer: B,
     element: &C::ScalarField,
     num_els: usize,

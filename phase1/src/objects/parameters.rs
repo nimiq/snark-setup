@@ -1,5 +1,5 @@
 use ark_serialize::CanonicalSerialize;
-pub use setup_utils::BatchGroupArithmetic;
+
 use setup_utils::{
     converters::{ContributionMode, ProvingSystem},
     UseCompression,
@@ -23,11 +23,7 @@ pub struct CurveParameters<E> {
     engine_type: PhantomData<E>,
 }
 
-impl<E: Pairing> CurveParameters<E>
-where
-    E::G1Affine: BatchGroupArithmetic,
-    E::G2Affine: BatchGroupArithmetic,
-{
+impl<E: Pairing> CurveParameters<E> {
     pub fn new() -> CurveParameters<E> {
         CurveParameters {
             g1_size: <E as Pairing>::G1Affine::default().uncompressed_size(),
@@ -41,11 +37,7 @@ where
 
 /// The parameters used for the trusted setup ceremony
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Phase1Parameters<E: Pairing>
-where
-    E::G1Affine: BatchGroupArithmetic,
-    E::G2Affine: BatchGroupArithmetic,
-{
+pub struct Phase1Parameters<E: Pairing> {
     /// The contribution mode
     pub contribution_mode: ContributionMode,
     /// The chunk index
@@ -79,11 +71,7 @@ where
     pub hash_size: usize,
 }
 
-impl<E: Pairing> Phase1Parameters<E>
-where
-    E::G1Affine: BatchGroupArithmetic,
-    E::G2Affine: BatchGroupArithmetic,
-{
+impl<E: Pairing> Phase1Parameters<E> {
     /// Constructs a new ceremony parameters object from the type of provided curve
     /// Panics if given batch_size = 0
     pub fn new_full(proving_system: ProvingSystem, total_size_in_log2: usize, batch_size: usize) -> Self {
@@ -313,11 +301,7 @@ mod tests {
     use ark_bls12_381::Bls12_381;
     use ark_bw6_761::BW6_761;
 
-    fn curve_parameters_test<E: Pairing>(g1: usize, g2: usize, g1_compressed: usize, g2_compressed: usize)
-    where
-        E::G1Affine: BatchGroupArithmetic,
-        E::G2Affine: BatchGroupArithmetic,
-    {
+    fn curve_parameters_test<E: Pairing>(g1: usize, g2: usize, g1_compressed: usize, g2_compressed: usize) {
         let p = CurveParameters::<E>::new();
         assert_eq!(p.g1_size, g1);
         assert_eq!(p.g2_size, g2);

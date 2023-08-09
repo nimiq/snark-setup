@@ -1,5 +1,5 @@
 use phase1::{Phase1, Phase1Parameters};
-use setup_utils::{blank_hash, calculate_hash, print_hash, BatchGroupArithmetic, UseCompression};
+use setup_utils::{blank_hash, calculate_hash, print_hash, UseCompression};
 
 use ark_ec::pairing::Pairing as Engine;
 
@@ -13,10 +13,7 @@ pub fn new_challenge<T: Engine + Sync>(
     challenge_filename: &str,
     challenge_hash_filename: &str,
     parameters: &Phase1Parameters<T>,
-) where
-    T::G1Affine: BatchGroupArithmetic,
-    T::G2Affine: BatchGroupArithmetic,
-{
+) {
     info!(
         "Will generate an empty accumulator for 2^{} powers of tau",
         parameters.total_size_in_log2

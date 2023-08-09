@@ -1,8 +1,6 @@
 use crate::{
     elements::CheckForCorrectness,
     errors::{Error, VerificationError},
-    BatchGroupArithmetic,
-    BatchGroupArithmeticSlice,
     Result,
 };
 use ark_ec::{pairing::Pairing, AffineRepr, CurveGroup, Group};
@@ -55,11 +53,7 @@ pub fn print_hash(hash: &[u8]) {
 }
 
 /// Multiply a large number of points by a scalar
-pub fn batch_mul<C: AffineRepr + BatchGroupArithmetic>(
-    bases: &mut [C],
-    coeff: &C::ScalarField,
-    batch_exp_mode: BatchExpMode,
-) -> Result<()> {
+pub fn batch_mul<C: AffineRepr>(bases: &mut [C], coeff: &C::ScalarField, batch_exp_mode: BatchExpMode) -> Result<()> {
     let exps = vec![*coeff; bases.len()];
     batch_exp(bases, &exps, None, batch_exp_mode)
 }
@@ -78,7 +72,7 @@ pub fn batch_mul_old<C: AffineRepr>(bases: &mut [C], coeff: &C::ScalarField) -> 
     Ok(())
 }
 
-pub fn batch_exp<C: AffineRepr + BatchGroupArithmetic>(
+pub fn batch_exp<C: AffineRepr>(
     bases: &mut [C],
     exps: &[C::ScalarField],
     coeff: Option<&C::ScalarField>,
@@ -93,7 +87,9 @@ pub fn batch_exp<C: AffineRepr + BatchGroupArithmetic>(
     const CPU_CHUNK_SIZE: usize = 1 << 12; // The batch version is optimal around this value.
 
     match (batch_exp_mode, bases.len() < CPU_CHUNK_SIZE) {
-        (BatchExpMode::Auto, true) | (BatchExpMode::Direct, _) => {
+        (BatchExpMode::Auto, true) | (BatchExpMode::Direct, _)
+        // PITODO: batch inversion is disabled
+        | (BatchExpMode::Auto, false) | (BatchExpMode::BatchInversion, _) => {
             // raise the base to the exponent and assign it back to the base
             // this will return the points as projective
             let mut points: Vec<_> = cfg_iter_mut!(bases)
@@ -117,28 +113,28 @@ pub fn batch_exp<C: AffineRepr + BatchGroupArithmetic>(
             let affine = C::Group::normalize_batch(&mut points);
             bases.copy_from_slice(&affine);
         }
-        (BatchExpMode::Auto, false) | (BatchExpMode::BatchInversion, _) => {
-            let mut powers_vec: Vec<_> = exps
-                .to_vec()
-                .iter()
-                .map(|s| {
-                    let s = &mut match coeff {
-                        Some(k) => *s * k,
-                        None => *s,
-                    };
-                    s.into_bigint()
-                })
-                .collect();
-            let chunked_powers_vec = cfg_chunks_mut!(powers_vec, CPU_CHUNK_SIZE).collect::<Vec<_>>();
-            cfg_chunks_mut!(bases, CPU_CHUNK_SIZE)
-                .zip(chunked_powers_vec)
-                .for_each(|(chunk_bases, chunk_exps)| {
-                    // &mut bases[..].cpu_gpu_scalar_mul(&powers_vec[..], 1 << 5, CPU_CHUNK_SIZE);
+        // (BatchExpMode::Auto, false) | (BatchExpMode::BatchInversion, _) => {
+        //     let mut powers_vec: Vec<_> = exps
+        //         .to_vec()
+        //         .iter()
+        //         .map(|s| {
+        //             let s = &mut match coeff {
+        //                 Some(k) => *s * k,
+        //                 None => *s,
+        //             };
+        //             s.into_bigint()
+        //         })
+        //         .collect();
+        //     let chunked_powers_vec = cfg_chunks_mut!(powers_vec, CPU_CHUNK_SIZE).collect::<Vec<_>>();
+        //     cfg_chunks_mut!(bases, CPU_CHUNK_SIZE)
+        //         .zip(chunked_powers_vec)
+        //         .for_each(|(chunk_bases, chunk_exps)| {
+        //             // &mut bases[..].cpu_gpu_scalar_mul(&powers_vec[..], 1 << 5, CPU_CHUNK_SIZE);
 
-                    chunk_bases
-                        .batch_scalar_mul_in_place::<<C::ScalarField as PrimeField>::BigInt>(&mut chunk_exps[..], 5);
-                });
-        }
+        //             chunk_bases
+        //                 .batch_scalar_mul_in_place::<<C::ScalarField as PrimeField>::BigInt>(&mut chunk_exps[..], 5);
+        //         });
+        // }
     }
     Ok(())
 }

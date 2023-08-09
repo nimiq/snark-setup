@@ -27,11 +27,7 @@ pub fn setup_verify<E: Pairing>(
     compressed_output: UseCompression,
     batch_exp_mode: BatchExpMode,
     parameters: &Phase1Parameters<E>,
-) -> (Vec<u8>, Vec<u8>, PublicKey<E>, GenericArray<u8, U64>)
-where
-    E::G1Affine: BatchGroupArithmetic,
-    E::G2Affine: BatchGroupArithmetic,
-{
+) -> (Vec<u8>, Vec<u8>, PublicKey<E>, GenericArray<u8, U64>) {
     let (input, _) = generate_input(&parameters, compressed_input, check_input_for_correctness);
     let mut output = generate_output(&parameters, compressed_output);
 
@@ -64,11 +60,7 @@ pub fn generate_input<E: Pairing>(
     parameters: &Phase1Parameters<E>,
     compressed: UseCompression,
     check_for_correctness: CheckForCorrectness,
-) -> (Vec<u8>, Phase1<E>)
-where
-    E::G1Affine: BatchGroupArithmetic,
-    E::G2Affine: BatchGroupArithmetic,
-{
+) -> (Vec<u8>, Phase1<E>) {
     let len = parameters.get_length(compressed);
     let mut output = vec![0; len];
     Phase1::initialization(&mut output, compressed, &parameters).unwrap();
@@ -79,21 +71,13 @@ where
 }
 
 /// Helper to initialize an empty output accumulator, to be used for contributions.
-pub fn generate_output<E: Pairing>(parameters: &Phase1Parameters<E>, compressed: UseCompression) -> Vec<u8>
-where
-    E::G1Affine: BatchGroupArithmetic,
-    E::G2Affine: BatchGroupArithmetic,
-{
+pub fn generate_output<E: Pairing>(parameters: &Phase1Parameters<E>, compressed: UseCompression) -> Vec<u8> {
     let expected_response_length = parameters.get_length(compressed);
     vec![0; expected_response_length]
 }
 
 /// Helper to initialize an empty output accumulator, to be used for new challenges.
-pub fn generate_new_challenge<E: Pairing>(parameters: &Phase1Parameters<E>, compressed: UseCompression) -> Vec<u8>
-where
-    E::G1Affine: BatchGroupArithmetic,
-    E::G2Affine: BatchGroupArithmetic,
-{
+pub fn generate_new_challenge<E: Pairing>(parameters: &Phase1Parameters<E>, compressed: UseCompression) -> Vec<u8> {
     let expected_new_challenge_length = parameters.get_length(compressed);
     vec![0; expected_new_challenge_length]
 }
@@ -103,11 +87,7 @@ where
 pub fn generate_random_accumulator<E: Pairing>(
     parameters: &Phase1Parameters<E>,
     compressed: UseCompression,
-) -> (Vec<u8>, Phase1<E>)
-where
-    E::G1Affine: BatchGroupArithmetic,
-    E::G2Affine: BatchGroupArithmetic,
-{
+) -> (Vec<u8>, Phase1<E>) {
     match parameters.proving_system {
         crate::ProvingSystem::Groth16 => {
             let tau_g1_size = parameters.powers_g1_length;
