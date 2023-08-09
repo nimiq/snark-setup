@@ -1,4 +1,4 @@
-mod arith;
+pub(crate) mod arith;
 mod bigint;
 mod bucketed_add;
 mod curves;

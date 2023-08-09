@@ -252,7 +252,7 @@ fn split_transcript<E: Pairing>(input: &[u8], phase1_size: usize, size: usize, c
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{BatchGroupArithmetic, UseCompression};
+    use crate::UseCompression;
     use phase1::{
         helpers::testing::{
             setup_verify,
@@ -260,6 +260,7 @@ mod tests {
             CheckForCorrectness as CheckForCorrectnessPhase1,
             UseCompression as UseCompressionPhase1,
         },
+        BatchGroupArithmetic,
         Phase1,
         Phase1Parameters,
         ProvingSystem,

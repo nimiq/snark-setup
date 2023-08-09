@@ -3,7 +3,11 @@ use std::ops::Mul;
 
 use super::*;
 
-impl<'a, E: Pairing + Sync> Phase1<'a, E> {
+impl<'a, E: Pairing + Sync> Phase1<'a, E>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     /// Constructs a keypair given an RNG and a 64-byte transcript `digest`.
     pub fn key_generation<R: Rng>(rng: &mut R, digest: &[u8]) -> Result<(PublicKey<E>, PrivateKey<E>)> {
         if digest.len() != 64 {

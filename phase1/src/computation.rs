@@ -3,7 +3,11 @@ use std::ops::Mul;
 use super::*;
 use ark_ff::{batch_inversion, Field};
 
-impl<'a, E: Pairing + Sync> Phase1<'a, E> {
+impl<'a, E: Pairing + Sync> Phase1<'a, E>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     ///
     /// Phase 1 - Computation: Steps 5, 6, and 7
     ///

@@ -39,7 +39,11 @@ use tracing::{debug, info, info_span, trace};
 /// * (τ, τ<sup>2</sup>, ..., τ<sup>2<sup>22</sup> - 2</sup>, α, ατ, ατ<sup>2</sup>, ..., ατ<sup>2<sup>21</sup> - 1</sup>, β, βτ, βτ<sup>2</sup>, ..., βτ<sup>2<sup>21</sup> - 1</sup>)<sub>1</sub>
 /// * (β, τ, τ<sup>2</sup>, ..., τ<sup>2<sup>21</sup> - 1</sup>)<sub>2</sub>
 #[derive(Debug)]
-pub struct Phase1<'a, E: Pairing> {
+pub struct Phase1<'a, E: Pairing>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     /// Groth16: tau^0, tau^1, tau^2, ..., tau^{TAU_POWERS_G1_LENGTH - 1}
     /// Marlin: tau^0, tau^1, tau^2, ..., tau^{TAU_POWERS_LENGTH - 1}
     pub tau_powers_g1: Vec<E::G1Affine>,
@@ -63,7 +67,11 @@ pub struct Phase1<'a, E: Pairing> {
     pub parameters: &'a Phase1Parameters<E>,
 }
 
-impl<'a, E: Pairing> PartialEq for Phase1<'a, E> {
+impl<'a, E: Pairing> PartialEq for Phase1<'a, E>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     fn eq(&self, other: &Self) -> bool {
         self.tau_powers_g1 == other.tau_powers_g1
             && self.tau_powers_g2 == other.tau_powers_g2

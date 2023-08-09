@@ -41,7 +41,9 @@ cfg_if! {
         use crate::PublicKey;
         /// Given a public key and the accumulator's digest, it hashes each G1 element
         /// along with the digest, and then hashes it to G2.
-        pub(crate) fn compute_g2_s_key<E: Pairing>(key: &PublicKey<E>, digest: &[u8]) -> Result<[E::G2Affine; 3]> {
+        pub(crate) fn compute_g2_s_key<E: Pairing>(key: &PublicKey<E>, digest: &[u8]) -> Result<[E::G2Affine; 3]> where
+        E::G1Affine: BatchGroupArithmetic,
+        E::G2Affine: BatchGroupArithmetic,{
             Ok([
                 compute_g2_s::<E>(&digest, &key.tau_g1.0, &key.tau_g1.1, 0)?,
                 compute_g2_s::<E>(&digest, &key.alpha_g1.0, &key.alpha_g1.1, 1)?,
@@ -189,7 +191,9 @@ cfg_if! {
             output: &mut [u8],
             check_input_for_correctness: CheckForCorrectness,
             parameters: &Phase1Parameters<E>,
-        ) -> Result<()> {
+        ) -> Result<()> where
+        E::G1Affine: BatchGroupArithmetic,
+        E::G2Affine: BatchGroupArithmetic,{
             let compressed_input = UseCompression::Yes;
             let compressed_output = UseCompression::No;
 
@@ -296,7 +300,11 @@ pub fn serialize<E: Pairing>(
     output: &mut [u8],
     compressed: UseCompression,
     parameters: &Phase1Parameters<E>,
-) -> Result<()> {
+) -> Result<()>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     let (in_tau_g1, in_tau_g2, in_alpha_g1, in_beta_g1, in_beta_g2) = elements;
     let (tau_g1, tau_g2, alpha_g1, beta_g1, beta_g2) = split_mut(output, parameters, compressed);
 
@@ -319,7 +327,11 @@ pub fn deserialize<E: Pairing>(
     compressed: UseCompression,
     check_input_for_correctness: CheckForCorrectness,
     parameters: &Phase1Parameters<E>,
-) -> Result<AccumulatorElements<E>> {
+) -> Result<AccumulatorElements<E>>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     // Get an immutable reference to the input chunks
     let (in_tau_g1, in_tau_g2, in_alpha_g1, in_beta_g1, in_beta_g2) = split(&input, parameters, compressed);
 

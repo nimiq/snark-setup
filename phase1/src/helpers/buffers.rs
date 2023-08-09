@@ -19,10 +19,14 @@ type SplitBuf<'a> = (&'a [u8], &'a [u8], &'a [u8], &'a [u8], &'a [u8]);
 
 /// Helper function to iterate over the accumulator in chunks.
 /// `action` will perform an action on the chunk
-pub(crate) fn iter_chunk(
-    parameters: &Phase1Parameters<impl Pairing>,
+pub(crate) fn iter_chunk<E: Pairing>(
+    parameters: &Phase1Parameters<E>,
     mut action: impl FnMut(usize, usize) -> Result<()>,
-) -> Result<()> {
+) -> Result<()>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     // Determine the range to iterate over.
     let (min, max) = {
         // Determine the number of elements to process based on the proof system's requirement.
@@ -104,7 +108,11 @@ pub(crate) fn split_at_chunk<'a, E: Pairing>(
     buffer: &'a [u8],
     parameters: &'a Phase1Parameters<E>,
     compressed: UseCompression,
-) -> SplitBuf<'a> {
+) -> SplitBuf<'a>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     let g1_size = buffer_size::<E::G1Affine>(compressed);
     let g2_size = buffer_size::<E::G2Affine>(compressed);
 
@@ -173,7 +181,11 @@ pub(crate) fn split_at_chunk_mut<'a, E: Pairing>(
     buffer: &'a mut [u8],
     parameters: &'a Phase1Parameters<E>,
     compressed: UseCompression,
-) -> SplitBufMut<'a> {
+) -> SplitBufMut<'a>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     let g1_size = buffer_size::<E::G1Affine>(compressed);
     let g2_size = buffer_size::<E::G2Affine>(compressed);
 
@@ -247,7 +259,11 @@ pub(crate) fn split_mut<'a, E: Pairing>(
     buffer: &'a mut [u8],
     parameters: &'a Phase1Parameters<E>,
     compressed: UseCompression,
-) -> SplitBufMut<'a> {
+) -> SplitBufMut<'a>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     match parameters.proving_system {
         ProvingSystem::Groth16 => {
             let g1_size = buffer_size::<E::G1Affine>(compressed);
@@ -294,7 +310,11 @@ pub(crate) fn split<'a, E: Pairing>(
     buffer: &'a [u8],
     parameters: &Phase1Parameters<E>,
     compressed: UseCompression,
-) -> SplitBuf<'a> {
+) -> SplitBuf<'a>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     match parameters.proving_system {
         ProvingSystem::Groth16 => {
             let g1_size = buffer_size::<E::G1Affine>(compressed);

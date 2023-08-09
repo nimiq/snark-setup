@@ -1,7 +1,7 @@
 use ark_serialize::CanonicalSerialize;
+pub use setup_utils::BatchGroupArithmetic;
 use setup_utils::{
     converters::{ContributionMode, ProvingSystem},
-    BatchGroupArithmetic,
     UseCompression,
 };
 
@@ -41,7 +41,11 @@ where
 
 /// The parameters used for the trusted setup ceremony
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Phase1Parameters<E> {
+pub struct Phase1Parameters<E: Pairing>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     /// The contribution mode
     pub contribution_mode: ContributionMode,
     /// The chunk index

@@ -1,5 +1,5 @@
 use crate::Phase1Parameters;
-use setup_utils::{Error, UseCompression};
+use setup_utils::{BatchGroupArithmetic, Error, UseCompression};
 
 use ark_ec::pairing::Pairing;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
@@ -12,7 +12,11 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 ///
 /// It is necessary to verify `same_ratio`((s<sub>1</sub>, s<sub>1</sub><sup>x</sup>), (H(s<sub>1</sub><sup>x</sup>)<sub>2</sub>, H(s<sub>1</sub><sup>x</sup>)<sub>2</sub><sup>x</sup>)).
 #[derive(Eq, Debug, CanonicalSerialize, CanonicalDeserialize)]
-pub struct PublicKey<E: Pairing> {
+pub struct PublicKey<E: Pairing>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     pub tau_g1: (E::G1Affine, E::G1Affine),
     pub alpha_g1: (E::G1Affine, E::G1Affine),
     pub beta_g1: (E::G1Affine, E::G1Affine),
@@ -21,7 +25,11 @@ pub struct PublicKey<E: Pairing> {
     pub beta_g2: E::G2Affine,
 }
 
-impl<E: Pairing> PartialEq for PublicKey<E> {
+impl<E: Pairing> PartialEq for PublicKey<E>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     fn eq(&self, other: &PublicKey<E>) -> bool {
         self.tau_g1.0 == other.tau_g1.0
             && self.tau_g1.1 == other.tau_g1.1
@@ -35,7 +43,11 @@ impl<E: Pairing> PartialEq for PublicKey<E> {
     }
 }
 
-impl<E: Pairing> PublicKey<E> {
+impl<E: Pairing> PublicKey<E>
+where
+    E::G1Affine: BatchGroupArithmetic,
+    E::G2Affine: BatchGroupArithmetic,
+{
     /// Writes the key to the memory map (takes into account offsets)
     pub fn write(
         &self,

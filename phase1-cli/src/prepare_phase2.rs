@@ -1,5 +1,5 @@
 use phase1::{parameters::*, Phase1};
-use setup_utils::{CheckForCorrectness, Groth16Params, Result, UseCompression};
+use setup_utils::{BatchGroupArithmetic, CheckForCorrectness, Groth16Params, Result, UseCompression};
 use std::ops::Neg;
 
 use ark_ec::pairing::Pairing as Engine;
@@ -17,7 +17,8 @@ pub fn prepare_phase2<T: Engine + Sync>(
     parameters: &Phase1Parameters<T>,
 ) -> Result<()>
 where
-    T::G1Affine: Neg<Output = T::G1Affine>,
+    T::G1Affine: Neg<Output = T::G1Affine> + BatchGroupArithmetic,
+    T::G2Affine: BatchGroupArithmetic,
 {
     // Try to load response file from disk.
     let reader = OpenOptions::new()
