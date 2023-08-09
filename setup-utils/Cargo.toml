@@ -45,10 +45,11 @@ either = "1.9.0"
 itertools = "0.11"
 
 [dev-dependencies]
-phase1 = { path = "../phase1" }
+phase1 = { path = "../phase1", features = ["testing"] }
 
 criterion = { version = "0.3" }
 rusty-hook = { version = "0.11" }
+rand_xorshift = { version = "0.3" }
 
 [features]
 default = ["parallel"]

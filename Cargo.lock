@@ -2222,6 +2222,7 @@ dependencies = [
  "phase1",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
+ "rand_xorshift 0.3.0",
  "rayon",
  "rusty-hook",
  "sha2",
