@@ -16,12 +16,16 @@ pub enum ProvingSystem {
 pub enum CurveKind {
     Bls12_377,
     BW6,
+    MNT4_753,
+    MNT6_753,
 }
 
 pub fn curve_from_str(src: &str) -> Result<CurveKind, String> {
     let curve = match src.to_lowercase().as_str() {
         "bls12_377" => CurveKind::Bls12_377,
         "bw6" => CurveKind::BW6,
+        "mnt4_753" => CurveKind::MNT4_753,
+        "mnt6_753" => CurveKind::MNT6_753,
         _ => return Err("unsupported curve".to_string()),
     };
     Ok(curve)

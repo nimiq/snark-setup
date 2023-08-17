@@ -22,6 +22,8 @@ use setup_utils::{
 use ark_bls12_377::Bls12_377;
 use ark_bw6_761::BW6_761;
 use ark_ec::pairing::Pairing as Engine;
+use ark_mnt4_753::MNT4_753;
+use ark_mnt6_753::MNT6_753;
 
 use gumdrop::Options;
 use std::{fs::read_to_string, process, time::Instant};
@@ -144,5 +146,7 @@ fn main() {
     match opts.curve_kind {
         CurveKind::Bls12_377 => execute_cmd::<Bls12_377>(opts),
         CurveKind::BW6 => execute_cmd::<BW6_761>(opts),
+        CurveKind::MNT4_753 => execute_cmd::<MNT4_753>(opts),
+        CurveKind::MNT6_753 => execute_cmd::<MNT6_753>(opts),
     };
 }

@@ -20,6 +20,8 @@ ark-ec = { version = "0.4", features = ["std"] }
 ark-bls12-377 = { version = "0.4", features = ["std"] }
 ark-bls12-381 = { version = "0.4", features = ["std"] }
 ark-bw6-761 = { version = "0.4", features = ["std"] }
+ark-mnt4-753 = { version = "0.4", features = ["std"] }
+ark-mnt6-753 = { version = "0.4", features = ["std"] }
 
 gumdrop = { version = "0.8" }
 hex = { version = "0.4" }

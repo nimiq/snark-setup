@@ -1,3 +1,5 @@
+use ark_mnt4_753::MNT4_753;
+use ark_mnt6_753::MNT6_753;
 use setup_utils::converters::CurveKind;
 
 use ark_bls12_377::Bls12_377;
@@ -99,5 +101,7 @@ fn main() {
     match opts.curve_kind {
         CurveKind::Bls12_377 => execute_cmd::<Bls12_377>(opts),
         CurveKind::BW6 => execute_cmd::<BW6_761>(opts),
+        CurveKind::MNT4_753 => execute_cmd::<MNT4_753>(opts),
+        CurveKind::MNT6_753 => execute_cmd::<MNT6_753>(opts),
     };
 }

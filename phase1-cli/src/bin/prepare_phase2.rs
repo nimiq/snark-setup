@@ -1,3 +1,5 @@
+use ark_mnt4_753::MNT4_753;
+use ark_mnt6_753::MNT6_753;
 use phase1::parameters::*;
 use phase1_cli::prepare_phase2;
 use setup_utils::{
@@ -58,6 +60,14 @@ fn main() -> Result<()> {
         CurveKind::BW6 => {
             let parameters = Phase1Parameters::<BW6_761>::new_full(opts.proving_system, opts.power, opts.batch_size);
             prepare_phase2::<BW6_761>(&opts.phase2_fname, &opts.response_fname, opts.power, &parameters)?
+        }
+        CurveKind::MNT4_753 => {
+            let parameters = Phase1Parameters::<MNT4_753>::new_full(opts.proving_system, opts.power, opts.batch_size);
+            prepare_phase2::<MNT4_753>(&opts.phase2_fname, &opts.response_fname, opts.power, &parameters)?
+        }
+        CurveKind::MNT6_753 => {
+            let parameters = Phase1Parameters::<MNT6_753>::new_full(opts.proving_system, opts.power, opts.batch_size);
+            prepare_phase2::<MNT6_753>(&opts.phase2_fname, &opts.response_fname, opts.power, &parameters)?
         }
     }
 
