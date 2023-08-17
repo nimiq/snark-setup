@@ -7,3 +7,4 @@ phase1radix2m*
 tmp_*
 .vscode
 *.swp
+.DS_Store
