@@ -47,7 +47,9 @@ parallel = [
     "setup-utils/parallel",
     "phase2/parallel",
     "phase1/parallel",
-] # PITODO
+    "ark-ec/parallel",
+    "ark-groth16/parallel",
+]
 
 [[bin]]
 name = "phase2"
