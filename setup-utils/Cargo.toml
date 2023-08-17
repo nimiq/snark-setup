@@ -18,9 +18,6 @@ name = "math"
 harness = false
 
 [dependencies]
-ark-bls12-377 = { version = "0.4", features = ["std"] }
-ark-bls12-381 = { version = "0.4", features = ["std"] }
-ark-bw6-761 = { version = "0.4", features = ["std"] }
 ark-ec = { version = "0.4", features = ["std"] }
 ark-ff = { version = "0.4", features = ["std"] }
 ark-poly = { version = "0.4", features = ["std"] }
@@ -46,6 +43,10 @@ itertools = "0.11"
 
 [dev-dependencies]
 phase1 = { path = "../phase1", features = ["testing"] }
+
+ark-bls12-377 = { version = "0.4", features = ["std"] }
+ark-bls12-381 = { version = "0.4", features = ["std"] }
+ark-bw6-761 = { version = "0.4", features = ["std"] }
 
 criterion = { version = "0.3" }
 rusty-hook = { version = "0.11" }
