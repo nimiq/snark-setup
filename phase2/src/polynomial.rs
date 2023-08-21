@@ -53,7 +53,7 @@ fn dot_product_ext<E: Pairing>(
     (bt, alpha_coeffs_g1): (&[Vec<(E::ScalarField, usize)>], &[E::G1Affine]),
     (ct, coeffs_g1): (&[Vec<(E::ScalarField, usize)>], &[E::G1Affine]),
 ) -> Vec<E::G1> {
-    let mut ret = at
+    let ret = at
         .par_iter()
         .zip(bt.par_iter().zip(ct))
         .map(|(at, (bt, ct))| {

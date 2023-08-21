@@ -22,7 +22,7 @@ pub struct PrivateKey<E: Pairing> {
     pub delta: E::ScalarField,
 }
 
-pub const pub_key_SIZE: usize = 544; // 96 * 2 + 48 * 2 * 3 + 64, assuming uncompressed elements
+pub const PUB_KEY_SIZE: usize = 544; // 96 * 2 + 48 * 2 * 3 + 64, assuming uncompressed elements
 
 /// This allows others to verify that you contributed. The hash produced
 /// by `MPCParameters::contribute` is just a BLAKE2b hash of this object.

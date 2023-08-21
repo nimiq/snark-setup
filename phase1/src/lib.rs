@@ -23,9 +23,6 @@ use setup_utils::*;
 #[cfg(not(feature = "wasm"))]
 use crate::helpers::accumulator::*;
 
-#[cfg(not(feature = "wasm"))]
-use ark_std::Zero;
-
 use ark_ec::{pairing::Pairing, AffineRepr, CurveGroup};
 
 use rand::Rng;

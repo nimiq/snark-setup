@@ -6,7 +6,7 @@ use crate::{
 use ark_ec::{pairing::Pairing, AffineRepr, CurveGroup, Group, VariableBaseMSM};
 use ark_ff::{BigInteger, Field, PrimeField};
 use ark_serialize::CanonicalSerialize;
-use ark_std::{cfg_chunks_mut, cfg_into_iter, cfg_iter, cfg_iter_mut, One, UniformRand, Zero};
+use ark_std::{cfg_into_iter, cfg_iter, cfg_iter_mut, One, UniformRand, Zero};
 
 use blake2::{digest::generic_array::GenericArray, Blake2b, Blake2b512, Digest};
 use rand::{rngs::OsRng, thread_rng, Rng, SeedableRng};

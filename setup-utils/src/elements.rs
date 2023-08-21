@@ -123,7 +123,7 @@ pub fn check_subgroup<C: AffineRepr>(
     elements: &[C],
     subgroup_check_mode: SubgroupCheckMode,
 ) -> core::result::Result<(), Error> {
-    const SECURITY_PARAM: usize = 128;
+    // const SECURITY_PARAM: usize = 128;
     const BATCH_SIZE: usize = 1 << 12;
     let prime_order_subgroup_check_pass = match (elements.len() > BATCH_SIZE, subgroup_check_mode) {
         (_, SubgroupCheckMode::No) => true,

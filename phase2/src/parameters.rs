@@ -3,7 +3,6 @@ use cfg_if::cfg_if;
 cfg_if! {
     if #[cfg(not(feature = "wasm"))] {
         use super::polynomial::eval;
-        use ark_std::Zero;
         use ark_groth16::{ProvingKey, VerifyingKey};
         use ark_relations::r1cs::SynthesisError;
     }
