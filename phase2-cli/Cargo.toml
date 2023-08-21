@@ -28,8 +28,6 @@ rand = { version = "0.8" }
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.2" }
 phase1 = { path = "../phase1" }
-#epoch-snark = { git = "https://github.com/celo-org/celo-bls-snark-rs", branch = "straka/integration_info" }
-epoch-snark = { git = "https://github.com/celo-org/celo-bls-snark-rs", rev = "0995862883b7f88da5ef8e9102f4173a3f3bf20d" }
 
 anyhow = "1"
 
