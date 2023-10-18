@@ -2,16 +2,17 @@ use phase2::{load_circuit::Matrices, parameters::MPCParameters};
 use setup_utils::{calculate_hash, print_hash, CheckForCorrectness, UseCompression};
 
 use crate::COMPRESS_CONTRIBUTE_INPUT;
-use ark_bw6_761::BW6_761;
+use ark_ec::pairing::Pairing;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use memmap::*;
 use std::{
     fs::{File, OpenOptions},
     io::{Read, Write},
+    ops::Neg,
 };
 use tracing::info;
 
-pub fn new_challenge(
+pub fn new_challenge<P: Pairing + Sync>(
     challenge_filename: &str,
     challenge_hash_filename: &str,
     challenge_list_filename: &str,
@@ -19,13 +20,16 @@ pub fn new_challenge(
     phase1_filename: &str,
     phase1_powers: usize,
     circuit_filename: &str,
-) -> usize {
+) -> usize
+where
+    P::G1Affine: Neg<Output = P::G1Affine>,
+{
     info!("Generating phase 2");
 
     let mut file = File::open(circuit_filename).unwrap();
     let mut buffer = Vec::<u8>::new();
     file.read_to_end(&mut buffer).unwrap();
-    let m = Matrices::<BW6_761>::deserialize_compressed(&*buffer).unwrap();
+    let m = Matrices::<P>::deserialize_compressed(&*buffer).unwrap();
 
     info!("Loaded circuit with {} constraints", m.num_constraints);
 
@@ -43,17 +47,16 @@ pub fn new_challenge(
             .expect("unable to create a memory map for input")
     };
 
-    let (full_mpc_parameters, query_parameters, all_mpc_parameters) =
-        MPCParameters::<BW6_761>::new_from_buffer_chunked(
-            m,
-            &mut phase1_readable_map,
-            UseCompression::No,
-            CheckForCorrectness::No,
-            1 << phase1_powers,
-            phase2_size,
-            chunk_size,
-        )
-        .unwrap();
+    let (full_mpc_parameters, query_parameters, all_mpc_parameters) = MPCParameters::<P>::new_from_buffer_chunked(
+        m,
+        &mut phase1_readable_map,
+        UseCompression::No,
+        CheckForCorrectness::No,
+        1 << phase1_powers,
+        phase2_size,
+        chunk_size,
+    )
+    .unwrap();
 
     let mut serialized_mpc_parameters = vec![];
     full_mpc_parameters

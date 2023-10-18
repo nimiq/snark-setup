@@ -1,31 +1,34 @@
 use phase2::parameters::{verify_transcript, MPCParameters};
 use setup_utils::{print_hash, CheckForCorrectness, SubgroupCheckMode, UseCompression};
 
-use ark_bw6_761::BW6_761;
+use ark_ec::pairing::Pairing;
 use ark_serialize::CanonicalSerialize;
 
 use std::{
     fs::File,
     io::{BufRead, BufReader},
+    ops::Neg,
 };
 use tracing::info;
 
 use crate::{COMBINED_IS_COMPRESSED, COMPRESS_CONTRIBUTE_INPUT, COMPRESS_CONTRIBUTE_OUTPUT};
 
-pub fn combine(
+pub fn combine<P: Pairing + Sync>(
     initial_query_filename: &str,
     initial_full_filename: &str,
     response_list_filename: &str,
     combined_filename: &str,
     combine_initial: bool,
-) {
+) where
+    P::G1Affine: Neg<Output = P::G1Affine>,
+{
     info!("Combining phase 2");
 
     let response_list_reader =
         BufReader::new(File::open(response_list_filename).expect("should have opened the response list"));
 
     let full_contents = std::fs::read(initial_full_filename).expect("should have initial full parameters");
-    let full_parameters = MPCParameters::<BW6_761>::read_fast(
+    let full_parameters = MPCParameters::<P>::read_fast(
         full_contents.as_slice(),
         UseCompression::No,
         CheckForCorrectness::No,
@@ -36,7 +39,7 @@ pub fn combine(
 
     let mut query_contents =
         std::io::Cursor::new(std::fs::read(initial_query_filename).expect("should have read initial query"));
-    let query_parameters = MPCParameters::<BW6_761>::read_groth16_fast(
+    let query_parameters = MPCParameters::<P>::read_groth16_fast(
         &mut query_contents,
         UseCompression::No,
         CheckForCorrectness::No,
@@ -54,7 +57,7 @@ pub fn combine(
     for line in response_list_reader.lines() {
         let line = line.expect("should have read line");
         let contents = std::fs::read(line).expect("should have read response");
-        let parameters = MPCParameters::<BW6_761>::read_fast(
+        let parameters = MPCParameters::<P>::read_fast(
             contents.as_slice(),
             parameters_compressed,
             CheckForCorrectness::No,
@@ -66,7 +69,7 @@ pub fn combine(
     }
 
     let combined =
-        MPCParameters::<BW6_761>::combine(&query_parameters, &all_parameters).expect("should have combined parameters");
+        MPCParameters::<P>::combine(&query_parameters, &all_parameters).expect("should have combined parameters");
 
     let contributions_hash = if combine_initial {
         verify_transcript(full_parameters.cs_hash, &combined.contributions).expect("should have verified successfully")

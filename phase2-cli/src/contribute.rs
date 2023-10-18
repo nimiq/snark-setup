@@ -1,14 +1,14 @@
 use phase2::parameters::MPCParameters;
 use setup_utils::{calculate_hash, print_hash, BatchExpMode, CheckForCorrectness, SubgroupCheckMode};
 
-use ark_bw6_761::BW6_761;
+use ark_ec::pairing::Pairing;
 
 use crate::{COMPRESS_CONTRIBUTE_INPUT, COMPRESS_CONTRIBUTE_OUTPUT};
 use rand::Rng;
-use std::io::Write;
+use std::{io::Write, ops::Neg};
 use tracing::info;
 
-pub fn contribute(
+pub fn contribute<P: Pairing + Sync>(
     challenge_filename: &str,
     challenge_hash_filename: &str,
     response_filename: &str,
@@ -16,7 +16,9 @@ pub fn contribute(
     check_input_correctness: CheckForCorrectness,
     batch_exp_mode: BatchExpMode,
     mut rng: impl Rng,
-) {
+) where
+    P::G1Affine: Neg<Output = P::G1Affine>,
+{
     info!("Contributing to phase 2");
 
     let challenge_contents = std::fs::read(challenge_filename).expect("should have read challenge");
@@ -29,7 +31,7 @@ pub fn contribute(
     info!("`challenge` file contains decompressed points and has a hash:");
     print_hash(&challenge_hash);
 
-    let mut parameters = MPCParameters::<BW6_761>::read_fast(
+    let mut parameters = MPCParameters::<P>::read_fast(
         challenge_contents.as_slice(),
         COMPRESS_CONTRIBUTE_INPUT,
         check_input_correctness,

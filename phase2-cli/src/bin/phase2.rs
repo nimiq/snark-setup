@@ -15,14 +15,17 @@ use setup_utils::{
     DEFAULT_CONTRIBUTE_CHECK_INPUT_CORRECTNESS,
     DEFAULT_VERIFY_CHECK_INPUT_CORRECTNESS,
 };
-use std::{fs::read_to_string, process, time::Instant};
+use std::{fs::read_to_string, ops::Neg, process, time::Instant};
 use tracing::{error, info};
 use tracing_subscriber::{
     filter::EnvFilter,
     fmt::{time::ChronoUtc, Subscriber},
 };
 
-fn execute_cmd<E: Engine>(opts: Phase2Opts) {
+fn execute_cmd<E: Engine>(opts: Phase2Opts)
+where
+    E::G1Affine: Neg<Output = E::G1Affine>,
+{
     let command = opts.clone().command.unwrap_or_else(|| {
         error!("No command was provided.");
         error!("{}", Phase2Opts::usage());
@@ -33,7 +36,7 @@ fn execute_cmd<E: Engine>(opts: Phase2Opts) {
 
     match command {
         Command::New(opt) => {
-            new_challenge(
+            new_challenge::<E>(
                 &opt.challenge_fname,
                 &opt.challenge_hash_fname,
                 &opt.challenge_list_fname,
@@ -47,7 +50,7 @@ fn execute_cmd<E: Engine>(opts: Phase2Opts) {
             let seed = hex::decode(&read_to_string(&opts.seed).expect("should have read seed").trim())
                 .expect("seed should be a hex string");
             let rng = derive_rng_from_seed(&seed);
-            contribute(
+            contribute::<E>(
                 &opt.challenge_fname,
                 &opt.challenge_hash_fname,
                 &opt.response_fname,
@@ -61,7 +64,7 @@ fn execute_cmd<E: Engine>(opts: Phase2Opts) {
             );
         }
         Command::Verify(opt) => {
-            verify(
+            verify::<E>(
                 &opt.challenge_fname,
                 &opt.challenge_hash_fname,
                 DEFAULT_VERIFY_CHECK_INPUT_CORRECTNESS,
@@ -75,7 +78,7 @@ fn execute_cmd<E: Engine>(opts: Phase2Opts) {
             );
         }
         Command::Combine(opt) => {
-            combine(
+            combine::<E>(
                 &opt.initial_query_fname,
                 &opt.initial_full_fname,
                 &opt.response_list_fname,

@@ -1,14 +1,14 @@
 use phase2::parameters::MPCParameters;
 use setup_utils::{calculate_hash, print_hash, CheckForCorrectness, SubgroupCheckMode};
 
-use ark_bw6_761::BW6_761;
+use ark_ec::pairing::Pairing;
 
 use crate::{COMBINED_IS_COMPRESSED, COMPRESS_CONTRIBUTE_INPUT, COMPRESS_CONTRIBUTE_OUTPUT};
 use memmap::MmapOptions;
-use std::{fs::OpenOptions, io::Write};
+use std::{fs::OpenOptions, io::Write, ops::Neg};
 use tracing::info;
 
-pub fn verify(
+pub fn verify<P: Pairing + Sync>(
     challenge_filename: &str,
     challenge_hash_filename: &str,
     check_input_correctness: CheckForCorrectness,
@@ -19,7 +19,9 @@ pub fn verify(
     new_challenge_hash_filename: &str,
     subgroup_check_mode: SubgroupCheckMode,
     verifying_full_contribution: bool,
-) {
+) where
+    P::G1Affine: Neg<Output = P::G1Affine>,
+{
     info!("Verifying phase 2");
 
     let challenge_contents = std::fs::read(challenge_filename).expect("should have read challenge");
@@ -32,7 +34,7 @@ pub fn verify(
     info!("`challenge` file contains decompressed points and has a hash:");
     print_hash(&challenge_hash);
 
-    let parameters_before = MPCParameters::<BW6_761>::read_fast(
+    let parameters_before = MPCParameters::<P>::read_fast(
         challenge_contents.as_slice(),
         COMPRESS_CONTRIBUTE_INPUT,
         check_input_correctness,
@@ -56,7 +58,7 @@ pub fn verify(
     } else {
         COMPRESS_CONTRIBUTE_OUTPUT
     };
-    let parameters_after = MPCParameters::<BW6_761>::read_fast(
+    let parameters_after = MPCParameters::<P>::read_fast(
         response_contents.as_slice(),
         after_compressed,
         check_output_correctness,
