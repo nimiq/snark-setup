@@ -1,5 +1,5 @@
 use phase1::{Phase1, Phase1Parameters};
-use setup_utils::{blank_hash, calculate_hash, print_hash, UseCompression};
+use setup_utils::{blank_hash, calculate_hash, print_hash, write_to_file, UseCompression};
 
 use ark_ec::pairing::Pairing as Engine;
 
@@ -61,10 +61,7 @@ pub fn new_challenge<T: Engine + Sync>(
     let output_readonly = writable_map.make_read_only().expect("must make a map readonly");
     let contribution_hash = calculate_hash(&output_readonly);
 
-    std::fs::File::create(challenge_hash_filename)
-        .expect("unable to open new challenge hash file")
-        .write_all(contribution_hash.as_slice())
-        .expect("unable to write new challenge hash");
+    write_to_file(challenge_hash_filename, contribution_hash.as_slice());
 
     info!("Empty contribution is formed with a hash:");
     print_hash(&contribution_hash);

@@ -1,6 +1,6 @@
 use ark_ec::pairing::Pairing as Engine;
 use phase1::{Phase1, Phase1Parameters, PublicKey};
-use setup_utils::{calculate_hash, print_hash, CheckForCorrectness, SubgroupCheckMode, UseCompression};
+use setup_utils::{calculate_hash, print_hash, write_to_file, CheckForCorrectness, SubgroupCheckMode, UseCompression};
 
 use memmap::*;
 use std::{
@@ -94,10 +94,7 @@ pub fn transform_pok_and_correctness<T: Engine + Sync>(
     // Check that contribution is correct
 
     let current_accumulator_hash = calculate_hash(&challenge_readable_map);
-    std::fs::File::create(challenge_hash_filename)
-        .expect("unable to open current accumulator hash file")
-        .write_all(current_accumulator_hash.as_slice())
-        .expect("unable to write current accumulator hash");
+    write_to_file(challenge_hash_filename, current_accumulator_hash.as_slice());
 
     info!("Hash of the `challenge` file for verification:");
     print_hash(&current_accumulator_hash);
@@ -121,10 +118,7 @@ pub fn transform_pok_and_correctness<T: Engine + Sync>(
     }
 
     let response_hash = calculate_hash(&response_readable_map);
-    std::fs::File::create(response_hash_filename)
-        .expect("unable to open response hash file")
-        .write_all(response_hash.as_slice())
-        .expect("unable to write response hash");
+    write_to_file(response_hash_filename, response_hash.as_slice());
 
     info!("Hash of the response file for verification:");
     print_hash(&response_hash);
@@ -190,10 +184,7 @@ pub fn transform_pok_and_correctness<T: Engine + Sync>(
 
     let recompressed_hash = calculate_hash(&new_challenge_readable_map);
 
-    std::fs::File::create(new_challenge_hash_filename)
-        .expect("unable to open new challenge hash file")
-        .write_all(recompressed_hash.as_slice())
-        .expect("unable to write new challenge hash");
+    write_to_file(new_challenge_hash_filename, recompressed_hash.as_slice());
 
     info!("Here's the BLAKE2b hash of the decompressed participant's response as new_challenge file:");
     print_hash(&recompressed_hash);

@@ -1,5 +1,7 @@
 //! Utilities for writing and reading group elements to buffers compressed and uncompressed
 mod read;
+use std::{fmt::Debug, io::Write, path::Path};
+
 pub use read::{BatchDeserializer, Deserializer};
 
 mod write;
@@ -10,6 +12,12 @@ use ark_ec::AffineRepr;
 
 pub fn buffer_size<C: AffineRepr>(compression: UseCompression) -> usize {
     C::default().serialized_size(compression)
+}
+
+pub fn write_to_file<P: AsRef<Path> + Debug>(path: P, data: &[u8]) {
+    let mut f = std::fs::File::create(&path).expect(&format!("unable to open new {:?} file", path));
+    f.write_all(data).expect(&format!("unable to write to {:?}", path));
+    f.sync_all().expect(&format!("unable to flush {:?}", path));
 }
 
 #[cfg(test)]

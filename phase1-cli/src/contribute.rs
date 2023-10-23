@@ -1,5 +1,5 @@
 use phase1::{Phase1, Phase1Parameters};
-use setup_utils::{calculate_hash, print_hash, BatchExpMode, CheckForCorrectness, UseCompression};
+use setup_utils::{calculate_hash, print_hash, write_to_file, BatchExpMode, CheckForCorrectness, UseCompression};
 
 use ark_ec::pairing::Pairing as Engine;
 
@@ -87,10 +87,7 @@ pub fn contribute<T: Engine + Sync>(
     {
         info!("`challenge` file contains decompressed points and has a hash:");
         print_hash(&current_accumulator_hash);
-        std::fs::File::create(challenge_hash_filename)
-            .expect("unable to open current accumulator hash file")
-            .write_all(current_accumulator_hash.as_slice())
-            .expect("unable to write current accumulator hash");
+        write_to_file(challenge_hash_filename, current_accumulator_hash.as_slice());
 
         (&mut writable_map[0..])
             .write_all(current_accumulator_hash.as_slice())
@@ -151,9 +148,6 @@ pub fn contribute<T: Engine + Sync>(
               The BLAKE2b hash of response file is:\n"
     );
     print_hash(&contribution_hash);
-    std::fs::File::create(response_hash_filename)
-        .expect("unable to open contribution hash file")
-        .write_all(contribution_hash.as_slice())
-        .expect("unable to write contribution hash");
+    write_to_file(response_hash_filename, contribution_hash.as_slice());
     info!("Thank you for your participation, much appreciated! :)");
 }

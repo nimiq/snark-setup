@@ -1,5 +1,5 @@
 use phase2::parameters::MPCParameters;
-use setup_utils::{calculate_hash, print_hash, BatchExpMode, CheckForCorrectness, SubgroupCheckMode};
+use setup_utils::{calculate_hash, print_hash, write_to_file, BatchExpMode, CheckForCorrectness, SubgroupCheckMode};
 
 use ark_ec::pairing::Pairing;
 
@@ -23,10 +23,7 @@ pub fn contribute<P: Pairing + Sync>(
 
     let challenge_contents = std::fs::read(challenge_filename).expect("should have read challenge");
     let challenge_hash = calculate_hash(&challenge_contents);
-    std::fs::File::create(challenge_hash_filename)
-        .expect("unable to open current accumulator hash file")
-        .write_all(&challenge_hash)
-        .expect("unable to write current accumulator hash");
+    write_to_file(challenge_hash_filename, &challenge_hash);
 
     info!("`challenge` file contains decompressed points and has a hash:");
     print_hash(&challenge_hash);
@@ -46,15 +43,9 @@ pub fn contribute<P: Pairing + Sync>(
     parameters
         .write(&mut serialized_response, COMPRESS_CONTRIBUTE_OUTPUT)
         .expect("should have written input");
-    std::fs::File::create(response_filename)
-        .expect("unable to create response")
-        .write_all(&serialized_response)
-        .expect("unable to write the response");
+    write_to_file(response_filename, &serialized_response);
     let response_hash = calculate_hash(&serialized_response);
-    std::fs::File::create(response_hash_filename)
-        .expect("unable to create response hash")
-        .write_all(&response_hash)
-        .expect("unable to write the response hash");
+    write_to_file(response_hash_filename, &response_hash);
     info!(
         "Done!\n\n\
               Your contribution has been written to response file\n\n\

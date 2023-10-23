@@ -1,5 +1,5 @@
 use phase2::{load_circuit::Matrices, parameters::MPCParameters};
-use setup_utils::{calculate_hash, print_hash, CheckForCorrectness, UseCompression};
+use setup_utils::{calculate_hash, print_hash, write_to_file, CheckForCorrectness, UseCompression};
 
 use crate::COMPRESS_CONTRIBUTE_INPUT;
 use ark_ec::pairing::Pairing;
@@ -69,18 +69,12 @@ where
         .unwrap();
 
     let contribution_hash = {
-        std::fs::File::create(format!("{}.full", challenge_filename))
-            .expect("unable to open new challenge hash file")
-            .write_all(&serialized_mpc_parameters)
-            .expect("unable to write serialized mpc parameters");
+        write_to_file(format!("{}.full", challenge_filename), &serialized_mpc_parameters);
         // Get the hash of the contribution, so the user can compare later
         calculate_hash(&serialized_mpc_parameters)
     };
 
-    std::fs::File::create(format!("{}.query", challenge_filename))
-        .expect("unable to open new challenge hash file")
-        .write_all(&serialized_query_parameters)
-        .expect("unable to write serialized mpc parameters");
+    write_to_file(format!("{}.query", challenge_filename), &serialized_query_parameters);
 
     let mut challenge_list_file =
         std::fs::File::create(challenge_list_filename).expect("unable to open new challenge list file");
@@ -90,19 +84,13 @@ where
         chunk
             .write(&mut serialized_chunk, COMPRESS_CONTRIBUTE_INPUT)
             .expect("unable to write chunk");
-        std::fs::File::create(format!("{}.{}", challenge_filename, i))
-            .expect("unable to open new challenge hash file")
-            .write_all(&serialized_chunk)
-            .expect("unable to write serialized mpc parameters");
+        write_to_file(format!("{}.{}", challenge_filename, i), &serialized_chunk);
         challenge_list_file
             .write(format!("{}.{}\n", challenge_filename, i).as_bytes())
             .expect("unable to write challenge list");
     }
 
-    std::fs::File::create(challenge_hash_filename)
-        .expect("unable to open new challenge hash file")
-        .write_all(contribution_hash.as_slice())
-        .expect("unable to write new challenge hash");
+    write_to_file(challenge_hash_filename, contribution_hash.as_slice());
 
     info!("Empty contribution is formed with a hash:");
     print_hash(&contribution_hash);

@@ -1,5 +1,5 @@
 use phase2::parameters::MPCParameters;
-use setup_utils::{calculate_hash, print_hash, CheckForCorrectness, SubgroupCheckMode};
+use setup_utils::{calculate_hash, print_hash, write_to_file, CheckForCorrectness, SubgroupCheckMode};
 
 use ark_ec::pairing::Pairing;
 
@@ -26,10 +26,7 @@ pub fn verify<P: Pairing + Sync>(
 
     let challenge_contents = std::fs::read(challenge_filename).expect("should have read challenge");
     let challenge_hash = calculate_hash(&challenge_contents);
-    std::fs::File::create(challenge_hash_filename)
-        .expect("unable to open current accumulator hash file")
-        .write_all(&challenge_hash)
-        .expect("unable to write current accumulator hash");
+    write_to_file(challenge_hash_filename, &challenge_hash);
 
     info!("`challenge` file contains decompressed points and has a hash:");
     print_hash(&challenge_hash);
@@ -45,10 +42,7 @@ pub fn verify<P: Pairing + Sync>(
 
     let response_contents = std::fs::read(response_filename).expect("should have read response");
     let response_hash = calculate_hash(&response_contents);
-    std::fs::File::create(response_hash_filename)
-        .expect("unable to open current accumulator hash file")
-        .write_all(&response_hash)
-        .expect("unable to write current accumulator hash");
+    write_to_file(response_hash_filename, &response_hash);
 
     info!("`response` file contains decompressed points and has a hash:");
     print_hash(&response_hash);
@@ -89,10 +83,7 @@ pub fn verify<P: Pairing + Sync>(
     };
 
     let new_challenge_hash = calculate_hash(&new_challenge_readable_map);
-    std::fs::File::create(new_challenge_hash_filename)
-        .expect("unable to open new challenge hash file")
-        .write_all(new_challenge_hash.as_slice())
-        .expect("unable to write new challenge hash");
+    write_to_file(new_challenge_hash_filename, new_challenge_hash.as_slice());
 
     parameters_before
         .verify(&parameters_after)

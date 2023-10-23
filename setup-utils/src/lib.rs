@@ -28,7 +28,7 @@ mod helpers;
 pub use helpers::*;
 
 mod io;
-pub use io::{buffer_size, BatchDeserializer, BatchSerializer, Deserializer, Serializer};
+pub use io::{buffer_size, write_to_file, BatchDeserializer, BatchSerializer, Deserializer, Serializer};
 
 pub mod rayon_cfg;
 
