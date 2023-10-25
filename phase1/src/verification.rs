@@ -112,7 +112,7 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                 ];
 
                 for (a, b, err) in check_ratios {
-                    check_same_ratio::<E>(a, b, err)?;
+                    check_same_ratio::<E>(a, b, err.to_string())?;
                 }
                 debug!("key ratios were correctly produced");
             }
@@ -139,7 +139,7 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                 check_same_ratio::<E>(
                     &(before_g1[1], after_g1[1]),
                     tau_single_g2_check,
-                    "Before-After: tau_g1",
+                    "Before-After: tau_g1".to_string(),
                 )?;
 
                 (before_g1, after_g1)
@@ -163,7 +163,7 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                 check_same_ratio::<E>(
                     tau_single_g1_check,
                     &(before_g2[1], after_g2[1]),
-                    "Before-After: tau_g2",
+                    "Before-After: tau_g2".to_string(),
                 )?;
             }
 
@@ -185,7 +185,7 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                     check_same_ratio::<E>(
                         &(before_g1[0], after_g1[0]),
                         check,
-                        "Before-After: alpha_g1[0] / beta_g1[0]",
+                        "Before-After: alpha_g1[0] / beta_g1[0]".to_string(),
                     )?;
                 }
             }
@@ -204,7 +204,7 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                     check_same_ratio::<E>(
                         beta_single_g1_check,
                         &(before_beta_g2, after_beta_g2),
-                        "Before-After: beta_g2[0]",
+                        "Before-After: beta_g2[0]".to_string(),
                     )?;
                 }
             }
@@ -261,6 +261,7 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                                     (start_chunk, end_chunk),
                                     &mut g1,
                                     &g2_check,
+                                    "tau g1",
                                 )
                                 .expect("could not check element ratios (tau g1)");
                             }
@@ -295,16 +296,17 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                                 ContributionMode::Full => (start, end),
                             };
 
-                            rayon::scope(|t| {
-                                let _enter = span.enter();
-
-                                // Process tau_g2 elements.
-                                t.spawn(|_| {
+                            if end > start + 1 {
+                                rayon::scope(|t| {
                                     let _enter = span.enter();
 
-                                    let mut g2 = vec![E::G2Affine::zero(); parameters.batch_size];
+                                    // Process tau_g2 elements.
+                                    t.spawn(|_| {
+                                        let _enter = span.enter();
 
-                                    check_elements_are_nonzero_and_in_prime_order_subgroup::<E::G2Affine>(
+                                        let mut g2 = vec![E::G2Affine::zero(); parameters.batch_size];
+
+                                        check_elements_are_nonzero_and_in_prime_order_subgroup::<E::G2Affine>(
                                         (tau_g2, compressed_output),
                                         (start_chunk, end_chunk),
                                         &mut g2,
@@ -314,31 +316,32 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                                         "could not check elements are non zero and in prime order subgroup (tau g2)",
                                     );
 
-                                    if ratio_check {
-                                        check_power_ratios_g2::<E>(
-                                            (tau_g2, compressed_output, CheckForCorrectness::No),
-                                            (start_chunk, end_chunk),
-                                            &mut g2[..],
-                                            &g1_check,
-                                        )
-                                        .expect("could not check ratios (tau g2)");
-                                    }
+                                        if ratio_check {
+                                            check_power_ratios_g2::<E>(
+                                                (tau_g2, compressed_output, CheckForCorrectness::No),
+                                                (start_chunk, end_chunk),
+                                                &mut g2[..],
+                                                &g1_check,
+                                                "tau g2",
+                                            )
+                                            .expect("could not check ratios (tau g2)");
+                                        }
 
-                                    let size = buffer_size::<E::G2Affine>(compressed_new_challenge);
-                                    new_challenge_tau_g2[start_chunk * size..end_chunk * size]
-                                        .write_batch(&mut g2[0..end_chunk - start_chunk], compressed_new_challenge)
-                                        .expect("Should have written tau_g2 to new challenge");
+                                        let size = buffer_size::<E::G2Affine>(compressed_new_challenge);
+                                        new_challenge_tau_g2[start_chunk * size..end_chunk * size]
+                                            .write_batch(&mut g2[0..end_chunk - start_chunk], compressed_new_challenge)
+                                            .expect("Should have written tau_g2 to new challenge");
 
-                                    trace!("tau_g2 verification was successful");
-                                });
+                                        trace!("tau_g2 verification was successful");
+                                    });
 
-                                // Process alpha_g1 elements.
-                                t.spawn(|_| {
-                                    let _enter = span.enter();
+                                    // Process alpha_g1 elements.
+                                    t.spawn(|_| {
+                                        let _enter = span.enter();
 
-                                    let mut g1 = vec![E::G1Affine::zero(); parameters.batch_size];
+                                        let mut g1 = vec![E::G1Affine::zero(); parameters.batch_size];
 
-                                    check_elements_are_nonzero_and_in_prime_order_subgroup::<E::G1Affine>(
+                                        check_elements_are_nonzero_and_in_prime_order_subgroup::<E::G1Affine>(
                                         (alpha_g1, compressed_output),
                                         (start_chunk, end_chunk),
                                         &mut g1,
@@ -348,31 +351,32 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                                         "could not check elements are non zero and in prime order subgroup (alpha g1)",
                                     );
 
-                                    if ratio_check {
-                                        check_power_ratios::<E>(
-                                            (alpha_g1, compressed_output, CheckForCorrectness::No),
-                                            (start_chunk, end_chunk),
-                                            &mut g1,
-                                            &g2_check,
-                                        )
-                                        .expect("could not check ratios (alpha g1)");
-                                    }
+                                        if ratio_check {
+                                            check_power_ratios::<E>(
+                                                (alpha_g1, compressed_output, CheckForCorrectness::No),
+                                                (start_chunk, end_chunk),
+                                                &mut g1,
+                                                &g2_check,
+                                                "alpha g1",
+                                            )
+                                            .expect("could not check ratios (alpha g1)");
+                                        }
 
-                                    let size = buffer_size::<E::G1Affine>(compressed_new_challenge);
-                                    new_challenge_alpha_g1[start_chunk * size..end_chunk * size]
-                                        .write_batch(&mut g1[0..end_chunk - start_chunk], compressed_new_challenge)
-                                        .expect("Should have written alpha_g1 to new challenge");
+                                        let size = buffer_size::<E::G1Affine>(compressed_new_challenge);
+                                        new_challenge_alpha_g1[start_chunk * size..end_chunk * size]
+                                            .write_batch(&mut g1[0..end_chunk - start_chunk], compressed_new_challenge)
+                                            .expect("Should have written alpha_g1 to new challenge");
 
-                                    trace!("alpha_g1 verification was successful");
-                                });
+                                        trace!("alpha_g1 verification was successful");
+                                    });
 
-                                // Process beta_g1 elements.
-                                t.spawn(|_| {
-                                    let _enter = span.enter();
+                                    // Process beta_g1 elements.
+                                    t.spawn(|_| {
+                                        let _enter = span.enter();
 
-                                    let mut g1 = vec![E::G1Affine::zero(); parameters.batch_size];
+                                        let mut g1 = vec![E::G1Affine::zero(); parameters.batch_size];
 
-                                    check_elements_are_nonzero_and_in_prime_order_subgroup::<E::G1Affine>(
+                                        check_elements_are_nonzero_and_in_prime_order_subgroup::<E::G1Affine>(
                                         (beta_g1, compressed_output),
                                         (start_chunk, end_chunk),
                                         &mut g1,
@@ -382,23 +386,25 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                                         "could not check element are non zero and in prime order subgroup (beta g1)",
                                     );
 
-                                    if ratio_check {
-                                        check_power_ratios::<E>(
-                                            (beta_g1, compressed_output, CheckForCorrectness::No),
-                                            (start_chunk, end_chunk),
-                                            &mut g1,
-                                            &g2_check,
-                                        )
-                                        .expect("could not check element ratios (beta g1)");
-                                    }
-                                    let size = buffer_size::<E::G1Affine>(compressed_new_challenge);
-                                    new_challenge_beta_g1[start_chunk * size..end_chunk * size]
-                                        .write_batch(&mut g1[0..end_chunk - start_chunk], compressed_new_challenge)
-                                        .expect("Should have written beta_g1 to new challenge");
+                                        if ratio_check {
+                                            check_power_ratios::<E>(
+                                                (beta_g1, compressed_output, CheckForCorrectness::No),
+                                                (start_chunk, end_chunk),
+                                                &mut g1,
+                                                &g2_check,
+                                                "beta g1",
+                                            )
+                                            .expect("could not check element ratios (beta g1)");
+                                        }
+                                        let size = buffer_size::<E::G1Affine>(compressed_new_challenge);
+                                        new_challenge_beta_g1[start_chunk * size..end_chunk * size]
+                                            .write_batch(&mut g1[0..end_chunk - start_chunk], compressed_new_challenge)
+                                            .expect("Should have written beta_g1 to new challenge");
 
-                                    trace!("beta_g1 verification was successful");
+                                        trace!("beta_g1 verification was successful");
+                                    });
                                 });
-                            });
+                            }
                         }
                     });
                 }
@@ -474,6 +480,8 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
 
                                 trace!("tau_g2 verification was successful");
                             });
+                        } else {
+                            eprintln!("Ignoring the last element, because the last was extended anyway.");
                         }
                     });
                 }
@@ -553,6 +561,7 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                                 (start, end),
                                 &mut g1,
                                 &g2_check,
+                                "tau g1",
                             )
                             .expect("could not check ratios for tau_g1 elements");
 
@@ -569,57 +578,64 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                                 end
                             };
 
-                            rayon::scope(|t| {
-                                let _enter = span.enter();
-
-                                t.spawn(|_| {
+                            if end > start + 1 {
+                                rayon::scope(|t| {
                                     let _enter = span.enter();
 
-                                    let mut g2 = vec![E::G2Affine::zero(); parameters.batch_size];
+                                    t.spawn(|_| {
+                                        let _enter = span.enter();
 
-                                    check_power_ratios_g2::<E>(
-                                        (tau_g2, compressed_output, check_output_for_correctness),
-                                        (start, end),
-                                        &mut g2,
-                                        &g1_check,
-                                    )
-                                    .expect("could not check ratios for tau_g2 elements");
+                                        let mut g2 = vec![E::G2Affine::zero(); parameters.batch_size];
 
-                                    trace!("tau_g2 verification successful");
+                                        check_power_ratios_g2::<E>(
+                                            (tau_g2, compressed_output, check_output_for_correctness),
+                                            (start, end),
+                                            &mut g2,
+                                            &g1_check,
+                                            "tau_g2",
+                                        )
+                                        .expect("could not check ratios for tau_g2 elements");
+
+                                        trace!("tau_g2 verification successful");
+                                    });
+
+                                    t.spawn(|_| {
+                                        let _enter = span.enter();
+
+                                        let mut g1 = vec![E::G1Affine::zero(); parameters.batch_size];
+
+                                        check_power_ratios::<E>(
+                                            (alpha_g1, compressed_output, check_output_for_correctness),
+                                            (start, end),
+                                            &mut g1,
+                                            &g2_check,
+                                            "alpha_g1",
+                                        )
+                                        .expect("could not check ratios for alpha_g1 elements");
+
+                                        trace!("alpha_g1 verification successful");
+                                    });
+
+                                    t.spawn(|_| {
+                                        let _enter = span.enter();
+
+                                        let mut g1 = vec![E::G1Affine::zero(); parameters.batch_size];
+
+                                        check_power_ratios::<E>(
+                                            (beta_g1, compressed_output, check_output_for_correctness),
+                                            (start, end),
+                                            &mut g1,
+                                            &g2_check,
+                                            "beta_g1",
+                                        )
+                                        .expect("could not check ratios for beta_g1 elements");
+
+                                        trace!("beta_g1 verification successful");
+                                    });
                                 });
-
-                                t.spawn(|_| {
-                                    let _enter = span.enter();
-
-                                    let mut g1 = vec![E::G1Affine::zero(); parameters.batch_size];
-
-                                    check_power_ratios::<E>(
-                                        (alpha_g1, compressed_output, check_output_for_correctness),
-                                        (start, end),
-                                        &mut g1,
-                                        &g2_check,
-                                    )
-                                    .expect("could not check ratios for alpha_g1 elements");
-
-                                    trace!("alpha_g1 verification successful");
-                                });
-
-                                t.spawn(|_| {
-                                    let _enter = span.enter();
-
-                                    let mut g1 = vec![E::G1Affine::zero(); parameters.batch_size];
-
-                                    check_power_ratios::<E>(
-                                        (beta_g1, compressed_output, check_output_for_correctness),
-                                        (start, end),
-                                        &mut g1,
-                                        &g2_check,
-                                    )
-                                    .expect("could not check ratios for beta_g1 elements");
-
-                                    trace!("beta_g1 verification successful");
-                                });
-                            });
+                            } else {
+                                eprintln!("Ignoring the last element, because the last was extended anyway.");
+                            }
                         }
                     });
 
@@ -648,6 +664,7 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                                 (start, end),
                                 &mut g1,
                                 &g2_check,
+                                "tau g1",
                             )
                             .expect("could not check ratios for tau_g1 elements");
 
@@ -674,7 +691,7 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                                 check_same_ratio::<E>(
                                     &(g1, E::G1Affine::generator()),
                                     &(E::G2Affine::generator(), g2),
-                                    "G1<>G2",
+                                    "G1<>G2".to_string(),
                                 )
                                 .expect("should have checked same ratio");
 
@@ -689,19 +706,19 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                                 check_same_ratio::<E>(
                                     &(alpha_g1_elements[0], alpha_g1_elements[1]),
                                     &g2_check,
-                                    "alpha_g1 ratio 1",
+                                    "alpha_g1 ratio 1".to_string(),
                                 )
                                 .expect("should have checked same ratio");
                                 check_same_ratio::<E>(
                                     &(alpha_g1_elements[1], alpha_g1_elements[2]),
                                     &g2_check,
-                                    "alpha_g1 ratio 2",
+                                    "alpha_g1 ratio 2".to_string(),
                                 )
                                 .expect("should have checked same ratio");
                                 check_same_ratio::<E>(
                                     &(alpha_g1_elements[0], g1_alpha_check.0),
                                     &(E::G2Affine::generator(), g2),
-                                    "alpha consistent",
+                                    "alpha consistent".to_string(),
                                 )
                                 .expect("should have checked same ratio");
                             }
@@ -718,6 +735,7 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                             (0, num_alpha_powers),
                             &mut g1,
                             &g2_check,
+                            "alpha g1",
                         )
                         .expect("could not check ratios for alpha_g1");
 
@@ -730,6 +748,7 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                             (0, 2),
                             &mut g2,
                             &g1_check,
+                            "tau g2",
                         )
                         .expect("could not check ratios for tau_g2");
 

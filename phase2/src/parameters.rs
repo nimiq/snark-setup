@@ -340,7 +340,7 @@ where
         check_same_ratio::<E>(
             &(E::G1Affine::generator(), pub_key.delta_after),
             &(E::G2Affine::generator(), after.params.vk.delta_g2),
-            "Inconsistent G2 Delta",
+            "Inconsistent G2 Delta".to_string(),
         )?;
 
         // None of the previous transformations should change
@@ -408,7 +408,7 @@ where
             check_same_ratio::<E>(
                 &merge_pairs(&before.params.h_query, &after.params.h_query),
                 &(after.params.vk.delta_g2, before.params.vk.delta_g2), // reversed for inverse
-                "H_query ratio check failed",
+                "H_query ratio check failed".to_string(),
             )?;
         }
 
@@ -416,7 +416,7 @@ where
             check_same_ratio::<E>(
                 &merge_pairs(&before.params.l_query, &after.params.l_query),
                 &(after.params.vk.delta_g2, before.params.vk.delta_g2), // reversed for inverse
-                "L_query ratio check failed",
+                "L_query ratio check failed".to_string(),
             )?;
         }
 
@@ -651,14 +651,14 @@ pub fn verify_transcript<E: Pairing>(cs_hash: [u8; 64], contributions: &[PublicK
         check_same_ratio::<E>(
             &(pub_key.s, pub_key.s_delta),
             &(r, pub_key.r_delta),
-            "Incorrect signature of knowledge",
+            "Incorrect signature of knowledge".to_string(),
         )?;
 
         // Check the change with the previous G1 Delta is consistent
         check_same_ratio::<E>(
             &(old_delta, pub_key.delta_after),
             &(r, pub_key.r_delta),
-            "Inconsistent G1 Delta",
+            "Inconsistent G1 Delta".to_string(),
         )?;
         old_delta = pub_key.delta_after;
 

@@ -5,7 +5,7 @@ use ark_ec::pairing::Pairing;
 
 use crate::{COMBINED_IS_COMPRESSED, COMPRESS_CONTRIBUTE_INPUT, COMPRESS_CONTRIBUTE_OUTPUT};
 use memmap::MmapOptions;
-use std::{fs::OpenOptions, io::Write, ops::Neg};
+use std::{fs::OpenOptions, ops::Neg};
 use tracing::info;
 
 pub fn verify<P: Pairing + Sync>(

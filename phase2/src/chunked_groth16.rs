@@ -217,7 +217,7 @@ pub fn verify<E: Pairing>(
     check_same_ratio::<E>(
         &(E::G1Affine::generator(), pub_key.delta_after),
         &(E::G2Affine::generator(), vk_after.delta_g2),
-        "Inconsistent G2 Delta",
+        "Inconsistent G2 Delta".to_string(),
     )?;
 
     debug!("verifying key was updated correctly");
@@ -550,14 +550,14 @@ fn chunked_check_ratio<E: Pairing>(
         let (els_before, els_after) =
             read_batch::<E::G1Affine, _>(&mut before, &mut after, batch_size, compressed, check_correctness)?;
         let pairs = merge_pairs(&els_before, &els_after);
-        check_same_ratio::<E>(&pairs, &(after_delta_g2, before_delta_g2), err)?;
+        check_same_ratio::<E>(&pairs, &(after_delta_g2, before_delta_g2), err.to_string())?;
     }
     // in case the batch size did not evenly divide the number of queries
     if leftovers > 0 {
         let (els_before, els_after) =
             read_batch::<E::G1Affine, _>(&mut before, &mut after, leftovers, compressed, check_correctness)?;
         let pairs = merge_pairs(&els_before, &els_after);
-        check_same_ratio::<E>(&pairs, &(after_delta_g2, before_delta_g2), err)?;
+        check_same_ratio::<E>(&pairs, &(after_delta_g2, before_delta_g2), err.to_string())?;
     }
 
     debug!("done.");

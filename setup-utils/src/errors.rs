@@ -97,7 +97,7 @@ impl fmt::Display for InvariantKind {
 pub enum VerificationError {
     #[error("Invalid ratio! Context: {0}")]
     /// The ratio check via the pairing of the provided elements failed
-    InvalidRatio(&'static str),
+    InvalidRatio(String),
     #[error("Invalid generator for {0} powers")]
     /// The first power of Tau was not the generator of that group
     InvalidGenerator(ElementType),

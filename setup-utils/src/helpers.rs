@@ -410,7 +410,7 @@ pub fn same_ratio<E: Pairing>(g1: &(E::G1Affine, E::G1Affine), g2: &(E::G2Affine
 pub fn check_same_ratio<E: Pairing>(
     g1: &(E::G1Affine, E::G1Affine),
     g2: &(E::G2Affine, E::G2Affine),
-    err: &'static str,
+    err: String,
 ) -> Result<()> {
     if g1.0.is_zero() || g1.1.is_zero() || g2.0.is_zero() || g2.1.is_zero() {
         return Err(VerificationError::InvalidRatio(err).into());

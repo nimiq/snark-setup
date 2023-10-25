@@ -5,7 +5,7 @@ use ark_ec::pairing::Pairing;
 
 use crate::{COMPRESS_CONTRIBUTE_INPUT, COMPRESS_CONTRIBUTE_OUTPUT};
 use rand::Rng;
-use std::{io::Write, ops::Neg};
+use std::ops::Neg;
 use tracing::info;
 
 pub fn contribute<P: Pairing + Sync>(
