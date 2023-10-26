@@ -20,6 +20,8 @@ ark-bw6-761 = { version = "0.4", features = ["std"] }
 ark-groth16 = { version = "0.4", features = ["std"] }
 ark-mnt4-753 = { version = "0.4", features = ["std"] }
 ark-mnt6-753 = { version = "0.4", features = ["std"] }
+ark-std = { version = "0.4", features = ["std"], optional = true }
+ark-relations = { version = "0.4", features = ["std"], optional = true }
 
 gumdrop = { version = "0.8" }
 hex = { version = "0.4" }
@@ -40,7 +42,14 @@ rustc_version = { version = "0.4" }
 
 [features]
 default = ["cli"]
-cli = ["phase2/cli", "parallel", "setup-utils/cli", "phase1/cli"]
+cli = [
+    "phase2/cli",
+    "parallel",
+    "setup-utils/cli",
+    "phase1/cli",
+    "ark-relations",
+    "ark-std",
+]
 parallel = [
     "setup-utils/parallel",
     "phase2/parallel",
@@ -52,3 +61,7 @@ parallel = [
 [[bin]]
 name = "phase2"
 required-features = ["cli"]
+
+[[bin]]
+name = "create_circuit"
+required-features = ["cli", "phase2/testing"]

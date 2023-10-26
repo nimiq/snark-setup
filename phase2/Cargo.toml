@@ -34,6 +34,8 @@ ark-relations = { version = "0.4", features = ["std"] }
 ark-bls12-377 = { version = "0.4", features = ["std"], optional = true }
 ark-bls12-381 = { version = "0.4", features = ["std"], optional = true }
 ark-bw6-761 = { version = "0.4", features = ["std"], optional = true }
+ark-mnt4-753 = { version = "0.4", features = ["std"], optional = true }
+ark-mnt6-753 = { version = "0.4", features = ["std"], optional = true }
 
 byteorder = { version = "1.4" }
 cfg-if = { version = "1.0" }
@@ -57,8 +59,6 @@ web-sys = { version = "0.3", features = ["console"], optional = true }
 phase1 = { path = "../phase1", features = ["testing"] }
 phase2 = { path = "./", features = ["testing"] }
 
-ark-mnt4-753 = "0.4"
-ark-mnt6-753 = "0.4"
 wasm-bindgen-test = { version = "0.3" }
 
 rusty-hook = { version = "0.11" }
@@ -66,7 +66,14 @@ tracing-subscriber = { version = "0.2" }
 
 [features]
 default = ["parallel"]
-testing = ["parallel", "ark-bls12-377", "ark-bls12-381", "ark-bw6-761"]
+testing = [
+    "parallel",
+    "ark-bls12-377",
+    "ark-bls12-381",
+    "ark-bw6-761",
+    "ark-mnt4-753",
+    "ark-mnt6-753",
+]
 parallel = [
     "rayon",
     "setup-utils/parallel",

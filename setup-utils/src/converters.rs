@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::{BatchExpMode, SubgroupCheckMode};
 
 #[derive(Clone, PartialEq, Eq, Debug, Copy)]
@@ -18,6 +20,17 @@ pub enum CurveKind {
     BW6,
     MNT4_753,
     MNT6_753,
+}
+
+impl Display for CurveKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CurveKind::Bls12_377 => write!(f, "bls12_377"),
+            CurveKind::BW6 => write!(f, "bw6"),
+            CurveKind::MNT4_753 => write!(f, "mnt4_753"),
+            CurveKind::MNT6_753 => write!(f, "mnt6_753"),
+        }
+    }
 }
 
 pub fn curve_from_str(src: &str) -> Result<CurveKind, String> {
