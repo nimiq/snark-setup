@@ -1,5 +1,5 @@
 use ark_ec::pairing::Pairing;
-use ark_relations::r1cs::Matrix;
+use ark_relations::r1cs::{ConstraintMatrices, Matrix};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use setup_utils::Error;
 
@@ -34,5 +34,21 @@ pub struct Matrices<E: Pairing> {
 impl<E: Pairing> Matrices<E> {
     pub fn read(input_map: &[u8]) -> Result<Self, Error> {
         Ok(Matrices::deserialize_compressed(&mut &input_map[..])?)
+    }
+}
+
+impl<E: Pairing> From<ConstraintMatrices<E::ScalarField>> for Matrices<E> {
+    fn from(value: ConstraintMatrices<E::ScalarField>) -> Self {
+        Self {
+            num_instance_variables: value.num_instance_variables,
+            num_witness_variables: value.num_witness_variables,
+            num_constraints: value.num_constraints,
+            a_num_non_zero: value.a_num_non_zero,
+            b_num_non_zero: value.b_num_non_zero,
+            c_num_non_zero: value.c_num_non_zero,
+            a: value.a,
+            b: value.b,
+            c: value.c,
+        }
     }
 }
