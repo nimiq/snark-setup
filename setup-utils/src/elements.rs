@@ -6,6 +6,7 @@ use ark_std::{cfg_iter, Zero};
 
 #[cfg(not(feature = "wasm"))]
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use tracing::error;
 
 use std::fmt;
 
@@ -133,7 +134,7 @@ pub fn check_subgroup<C: AffineRepr>(
             //     _ => false,
             // }
             // PITODO
-            eprintln!("Batched mode is currently disabled");
+            error!("Batched mode is currently disabled");
             cfg_iter!(elements).all(|p| p.mul_bigint(<C::ScalarField as PrimeField>::MODULUS).is_zero())
         }
         (false, SubgroupCheckMode::Auto) | (_, SubgroupCheckMode::Direct) => {

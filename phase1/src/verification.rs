@@ -481,7 +481,7 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                                 trace!("tau_g2 verification was successful");
                             });
                         } else {
-                            eprintln!("Ignoring the last element, because the last was extended anyway.");
+                            debug!("Ignoring the last element, because the last was extended anyway.");
                         }
                     });
                 }
@@ -634,7 +634,7 @@ impl<'a, E: Pairing + Sync> Phase1<'a, E> {
                                     });
                                 });
                             } else {
-                                eprintln!("Ignoring the last element, because the last was extended anyway.");
+                                error!("Ignoring the last element, because the last was extended anyway.");
                             }
                         }
                     });

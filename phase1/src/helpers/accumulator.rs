@@ -60,14 +60,12 @@ cfg_if! {
             err_message: &str,
         ) -> Result<()> {
             let size = buffer_size::<E::G1Affine>(compression);
-            // eprintln!("=== {}\n Start-end {}-{}\n check correctness: {}\n buffer len: {}\n size: {}", err_message, start,end, check_for_correctness,buffer.len(), size);
-            buffer[start * size..end * size].read_batch_preallocated(
+                        buffer[start * size..end * size].read_batch_preallocated(
                 &mut elements[0..end - start],
                 compression,
                 check_for_correctness,
             )?;
-            // eprintln!("=== {}\n elements: {:?}, check: {:?}",err_message,power_pairs(&elements[..end - start]),check);
-            check_same_ratio::<E>(&power_pairs(&elements[..end - start]), check, format!("Power pairs {}", err_message))?;
+                        check_same_ratio::<E>(&power_pairs(&elements[..end - start]), check, format!("Power pairs {}", err_message))?;
             Ok(())
         }
 
@@ -82,13 +80,11 @@ cfg_if! {
                         err_message: &str,
         ) -> Result<()> {
             let size = buffer_size::<E::G2Affine>(compression);
-            // eprintln!("=== {}\n Start and end {}-{}", err_message, start,end);
             buffer[start * size..end * size].read_batch_preallocated(
                 &mut elements[0..end - start],
                 compression,
                 check_for_correctness,
             )?;
-            // eprintln!("=== {}\n elements: {:?}",err_message,power_pairs(&elements[..end - start]));
             check_same_ratio::<E>(check, &power_pairs(&elements[..end - start]), format!("Power pairs {}", err_message))?;
             Ok(())
         }
@@ -119,7 +115,7 @@ cfg_if! {
                     //     _ => false,
                     // }
                     // PITODO
-                    eprintln!("Batched mode currently disabled");
+                    error!("Batched mode currently disabled");
                     cfg_iter!(elements).enumerate().all(|(i, p)| {
                         let res = p.mul_bigint(<C::ScalarField as PrimeField>::MODULUS)
                             .is_zero();
