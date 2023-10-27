@@ -28,7 +28,6 @@ fn generate_mpc_parameters<E, C>(c: C, rng: &mut impl Rng) -> MPCParameters<E>
 where
     E: Pairing,
     E::G1Affine: Neg<Output = E::G1Affine>,
-
     C: Clone + ConstraintSynthesizer<E::ScalarField>,
 {
     // perform the MPC on only the amount of constraints required for the circuit
@@ -110,7 +109,6 @@ fn generate_mpc_parameters_chunked<E, C>(c: C) -> MPCParameters<E>
 where
     E: Pairing,
     E::G1Affine: Neg<Output = E::G1Affine>,
-
     C: Clone + ConstraintSynthesizer<E::ScalarField>,
 {
     // perform the MPC on only the amount of constraints required for the circuit
