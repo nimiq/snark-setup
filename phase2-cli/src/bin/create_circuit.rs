@@ -3,11 +3,10 @@ use ark_bw6_761::BW6_761;
 use ark_ec::pairing::Pairing;
 use ark_mnt4_753::MNT4_753;
 use ark_mnt6_753::MNT6_753;
-use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystem, OptimizationGoal, SynthesisMode};
 use ark_serialize::CanonicalSerialize;
 use ark_std::UniformRand;
 use gumdrop::Options;
-use phase2::{helpers::testing::TestCircuit, load_circuit::Matrices};
+use phase2::{helpers::testing::TestCircuit, load_circuit::Matrices, parameters::circuit_to_qap};
 use rand::thread_rng;
 use setup_utils::{
     converters::{curve_from_str, CurveKind},
@@ -32,16 +31,7 @@ struct CircuitOpts {
 fn create_circuit<E: Pairing>(opts: CircuitOpts) {
     let circuit = TestCircuit::<E>(Some(E::ScalarField::rand(&mut thread_rng())));
 
-    let cs = ConstraintSystem::new_ref();
-    cs.set_optimization_goal(OptimizationGoal::Constraints);
-    cs.set_mode(SynthesisMode::Setup);
-
-    // Synthesize the circuit.
-    circuit
-        .generate_constraints(cs.clone())
-        .expect("Could not generate constraints");
-
-    cs.finalize();
+    let cs = circuit_to_qap::<E, _>(circuit).expect("Could not prepare circuit for QAP");
 
     let matrices = cs.to_matrices().expect("Could not generate matrices");
     let matrices = Matrices::<E>::from(matrices);
