@@ -1,3 +1,5 @@
+use tracing::error;
+
 use super::*;
 
 impl<'a, E: Pairing + Sync> Phase1<'a, E> {

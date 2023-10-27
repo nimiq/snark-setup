@@ -5,6 +5,7 @@ use cfg_if::cfg_if;
 use setup_utils::*;
 
 use ark_ec::{pairing::Pairing, AffineRepr};
+use tracing::error;
 
 #[cfg(not(feature = "wasm"))]
 use crate::ContributionMode;
