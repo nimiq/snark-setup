@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use ark_bls12_377::Bls12_377;
 use ark_bw6_761::BW6_761;
 use ark_ec::pairing::Pairing;
@@ -6,8 +8,12 @@ use ark_mnt6_753::MNT6_753;
 use ark_serialize::CanonicalSerialize;
 use ark_std::UniformRand;
 use gumdrop::Options;
-use phase2::{helpers::testing::TestCircuit, load_circuit::Matrices, parameters::circuit_to_qap};
-use rand::thread_rng;
+use phase2::{
+    helpers::testing::{TestCircuit, TestHashCircuit},
+    load_circuit::Matrices,
+    parameters::circuit_to_qap,
+};
+use rand::{thread_rng, RngCore};
 use setup_utils::{
     converters::{curve_from_str, CurveKind},
     write_to_file,
@@ -26,12 +32,21 @@ struct CircuitOpts {
         parse(try_from_str = "curve_from_str")
     )]
     pub curve_kind: CurveKind,
+    #[options(help = "use more complex circuit")]
+    pub complex: bool,
 }
 
 fn create_circuit<E: Pairing>(opts: CircuitOpts) {
-    let circuit = TestCircuit::<E>(Some(E::ScalarField::rand(&mut thread_rng())));
-
-    let cs = circuit_to_qap::<E, _>(circuit).expect("Could not prepare circuit for QAP");
+    let cs = if opts.complex {
+        let mut x = vec![0u8; 32];
+        let mut rng = thread_rng();
+        rng.fill_bytes(&mut x);
+        let circuit = TestHashCircuit::<E>(x, PhantomData);
+        circuit_to_qap::<E, _>(circuit).expect("Could not prepare circuit for QAP")
+    } else {
+        let circuit = TestCircuit::<E>(Some(E::ScalarField::rand(&mut thread_rng())));
+        circuit_to_qap::<E, _>(circuit).expect("Could not prepare circuit for QAP")
+    };
 
     let matrices = cs.to_matrices().expect("Could not generate matrices");
     let matrices = Matrices::<E>::from(matrices);

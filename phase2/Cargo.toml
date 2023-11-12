@@ -30,6 +30,12 @@ ark-groth16 = { version = "0.4", features = ["std"] }
 ark-serialize = { version = "0.4", features = ["std"] }
 ark-std = { version = "0.4", features = ["std"] }
 ark-relations = { version = "0.4", features = ["std"] }
+ark-r1cs-std = { version = "0.4", features = ["std"], optional = true }
+ark-crypto-primitives = { version = "0.4", features = [
+    "std",
+    "crh",
+    "r1cs",
+], optional = true }
 
 ark-bls12-377 = { version = "0.4", features = ["std"], optional = true }
 ark-bls12-381 = { version = "0.4", features = ["std"], optional = true }
@@ -73,6 +79,8 @@ testing = [
     "ark-bw6-761",
     "ark-mnt4-753",
     "ark-mnt6-753",
+    "ark-r1cs-std",
+    "ark-crypto-primitives",
 ]
 parallel = [
     "rayon",
