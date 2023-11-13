@@ -2,15 +2,14 @@ use std::marker::PhantomData;
 
 use ark_crypto_primitives::crh::sha256::{constraints::*, digest::Digest, Sha256};
 use ark_ec::pairing::Pairing;
-use ark_ff::Field;
+use ark_ff::{Field, ToConstraintField};
 use ark_r1cs_std::{bits::uint8::UInt8, prelude::EqGadget};
 use ark_relations::{
     lc,
     r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError},
 };
 
-// circuit proving knowledge of a square root
-// when generating the Setup, the element inside is None
+// circuit proving knowledge of a hash pre-image
 #[derive(Clone, Debug)]
 pub struct TestHashCircuit<E: Pairing>(pub Vec<u8>, pub PhantomData<E>);
 impl<E: Pairing> ConstraintSynthesizer<E::ScalarField> for TestHashCircuit<E> {
@@ -28,7 +27,15 @@ impl<E: Pairing> ConstraintSynthesizer<E::ScalarField> for TestHashCircuit<E> {
     }
 }
 
-// circuit proving knowledge of a hash pre-image
+impl<E: Pairing> TestHashCircuit<E> {
+    pub fn public_inputs(&self) -> Vec<E::ScalarField> {
+        let h = Sha256::digest(&self.0);
+        h.to_field_elements().unwrap()
+    }
+}
+
+// circuit proving knowledge of a square root
+// when generating the Setup, the element inside is None
 #[derive(Clone, Debug)]
 pub struct TestCircuit<E: Pairing>(pub Option<E::ScalarField>);
 impl<E: Pairing> ConstraintSynthesizer<E::ScalarField> for TestCircuit<E> {

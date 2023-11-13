@@ -1422,6 +1422,7 @@ dependencies = [
  "ark-mnt6-753",
  "ark-relations 0.4.0",
  "ark-serialize 0.4.2",
+ "ark-snark",
  "ark-std 0.4.0",
  "gumdrop",
  "hex",
