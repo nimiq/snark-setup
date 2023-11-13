@@ -6,7 +6,7 @@ use ark_ec::pairing::Pairing;
 use ark_groth16::{Groth16, ProvingKey};
 use ark_mnt4_753::MNT4_753;
 use ark_mnt6_753::MNT6_753;
-use ark_relations::r1cs::{ConstraintSynthesizer, Field};
+use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystem, Field, SynthesisMode};
 use ark_serialize::CanonicalDeserialize;
 use ark_snark::SNARK;
 use ark_std::UniformRand;
@@ -54,6 +54,19 @@ fn test_circuit<E: Pairing, C: ConstraintSynthesizer<E::ScalarField> + Clone>(
     circuit: C,
     public_inputs: &[E::ScalarField],
 ) {
+    // Test if circuit is satisfiable first.
+    info!("Test circuit");
+    let cs = ConstraintSystem::new_ref();
+    cs.set_mode(SynthesisMode::Prove {
+        construct_matrices: true,
+    });
+    circuit
+        .clone()
+        .generate_constraints(cs.clone())
+        .expect("constraint generation should not fail");
+    assert!(cs.is_satisfied().unwrap());
+
+    // Then prove and verify it with Groth16.
     let mut rng = OsRng::default();
 
     let f = File::open(&opts.proving_key_path).expect("Could not read proving key file");
