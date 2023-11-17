@@ -4,7 +4,8 @@ use crate::{buffer_size, CheckForCorrectness, Deserializer, Result, Serializer, 
 
 use ark_ec::{pairing::Pairing, AffineRepr, CurveGroup};
 use ark_ff::PrimeField;
-use ark_poly::domain::{radix2::Radix2EvaluationDomain, EvaluationDomain};
+use ark_poly::domain::EvaluationDomain;
+pub use ark_poly::GeneralEvaluationDomain;
 use ark_std::{cfg_into_iter, ops::Neg};
 
 #[cfg(feature = "parallel")]
@@ -83,7 +84,7 @@ where
         let _enter = span.enter();
 
         // Create the evaluation domain
-        let domain = Radix2EvaluationDomain::<E::ScalarField>::new(phase2_size).expect("could not create domain");
+        let domain = GeneralEvaluationDomain::<E::ScalarField>::new(phase2_size).expect("could not create domain");
 
         info!("converting powers of tau to lagrange coefficients");
 
