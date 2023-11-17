@@ -25,6 +25,10 @@ ark-snark = { version = "0.4", optional = true }
 ark-std = { version = "0.4", features = ["std"], optional = true }
 ark-relations = { version = "0.4", features = ["std"], optional = true }
 
+nimiq-zkp-circuits = { git = "https://github.com/nimiq/core-rs-albatross", features = [
+    "zkp-prover",
+], branch = 'iipb/zkps' }
+
 gumdrop = { version = "0.8" }
 hex = { version = "0.4" }
 memmap = { version = "0.7" }
@@ -67,6 +71,10 @@ required-features = ["cli"]
 
 [[bin]]
 name = "create_circuit"
+required-features = ["cli", "phase2/testing"]
+
+[[bin]]
+name = "create_nimiq_circuits"
 required-features = ["cli", "phase2/testing"]
 
 [[bin]]
