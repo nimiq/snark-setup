@@ -70,7 +70,7 @@ fn test_circuit<E: Pairing, C: ConstraintSynthesizer<E::ScalarField> + Clone>(
     let mut rng = OsRng::default();
 
     let f = File::open(&opts.proving_key_path).expect("Could not read proving key file");
-    let pk = ProvingKey::<E>::deserialize_compressed(&f).expect("Could not deserialize proving key");
+    let pk = ProvingKey::<E>::deserialize_uncompressed(&f).expect("Could not deserialize proving key");
 
     info!("Proving circuit");
     let proof = Groth16::<E>::prove(&pk, circuit.clone(), &mut rng).unwrap();

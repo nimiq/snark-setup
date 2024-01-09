@@ -85,6 +85,7 @@ where
 
         // Create the evaluation domain
         let domain = GeneralEvaluationDomain::<E::ScalarField>::new(phase2_size).expect("could not create domain");
+        let phase2_size = domain.size();
 
         info!("converting powers of tau to lagrange coefficients");
 

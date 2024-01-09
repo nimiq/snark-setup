@@ -41,9 +41,10 @@ where
     )
     .next_power_of_two();
     let powers = (phase2_size as u64).trailing_zeros() as usize;
+    let powers_phase1 = powers + 1;
 
     let batch = 4;
-    let params = Phase1Parameters::<E>::new_full(ProvingSystem::Groth16, powers, batch);
+    let params = Phase1Parameters::<E>::new_full(ProvingSystem::Groth16, powers_phase1, batch);
     let compressed = UseCompression::Yes;
 
     // make 1 power of tau contribution (assume powers of tau gets calculated properly)
@@ -121,9 +122,10 @@ where
     )
     .next_power_of_two();
     let powers = (phase2_size as u64).trailing_zeros() as usize;
+    let powers_phase1 = powers + 1;
 
     let batch = 4;
-    let params = Phase1Parameters::<E>::new_full(ProvingSystem::Groth16, powers, batch);
+    let params = Phase1Parameters::<E>::new_full(ProvingSystem::Groth16, powers_phase1, batch);
     let compressed = UseCompression::Yes;
 
     // make 1 power of tau contribution (assume powers of tau gets calculated properly)

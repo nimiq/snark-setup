@@ -13,7 +13,7 @@ const OUTPUT_IS_COMPRESSED: UseCompression = UseCompression::No;
 pub fn prepare_phase2<T: Engine + Sync>(
     phase2_filename: &str,
     response_filename: &str,
-    num_powers: usize,
+    powers_phase2: usize,
     parameters: &Phase1Parameters<T>,
 ) -> Result<()>
 where
@@ -49,7 +49,7 @@ where
 
     // Load the elements to the Groth16 utility
     let groth16_params = Groth16Params::<T>::new(
-        1 << num_powers,
+        1 << powers_phase2,
         current_accumulator.tau_powers_g1,
         current_accumulator.tau_powers_g2,
         current_accumulator.alpha_tau_powers_g1,
