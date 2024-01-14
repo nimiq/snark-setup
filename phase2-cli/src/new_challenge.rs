@@ -35,7 +35,7 @@ where
 
     let phase2_size =
         std::cmp::max(m.num_constraints, m.num_witness_variables + m.num_instance_variables).next_power_of_two();
-    let chunk_size = std::cmp::max(chunk_size, phase2_size);
+    let chunk_size = std::cmp::min(chunk_size, phase2_size);
 
     let reader = OpenOptions::new()
         .read(true)
