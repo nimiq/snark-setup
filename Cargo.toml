@@ -1,5 +1,6 @@
 [workspace]
 members = ["phase1", "phase1-cli", "phase2", "phase2-cli", "setup-utils"]
+resolver = "1"
 
 # Force arkworks to be built with optimization level 2.
 [profile.dev.package.ark-ff]
@@ -25,3 +26,14 @@ opt-level = 2
 
 [profile.test.package.ark-mnt6-753]
 opt-level = 2
+
+[profile.dev.package.ark-crypto-primitives]
+opt-level = 2
+
+[profile.test.package.ark-crypto-primitives]
+opt-level = 2
+
+[patch.crates-io]
+ark-ec = { git = "https://github.com/paberr/algebra", branch = "pb/0.4" }
+ark-ff = { git = "https://github.com/paberr/algebra", branch = "pb/0.4" }
+ark-r1cs-std = { git = "https://github.com/paberr/r1cs-std", branch = "pb/fix-pedersen" }
