@@ -27,7 +27,7 @@ ark-relations = { version = "0.4", features = ["std"], optional = true }
 
 nimiq-zkp-circuits = { git = "https://github.com/nimiq/core-rs-albatross", features = [
     "zkp-prover",
-], branch = 'iipb/zkps' }
+], branch = 'iipb/test-circuits' }
 
 gumdrop = { version = "0.8" }
 hex = { version = "0.4" }
