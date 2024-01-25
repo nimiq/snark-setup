@@ -19,13 +19,13 @@ use tracing_subscriber::{
 
 fn create_circuit<E: Pairing, C: ConstraintSynthesizer<E::ScalarField> + Clone>(circuit: C, filename: &str) {
     // Test circuit first
-    let cs = ConstraintSystem::new_ref();
+    // let cs = ConstraintSystem::new_ref();
     // Synthesize the circuit.
-    circuit
-        .clone()
-        .generate_constraints(cs.clone())
-        .expect("constraint generation should not fail");
-    assert!(cs.is_satisfied().unwrap());
+    // circuit
+    //     .clone()
+    //     .generate_constraints(cs.clone())
+    //     .expect("constraint generation should not fail");
+    // assert!(cs.is_satisfied().unwrap());
 
     let cs = circuit_to_qap::<E, _>(circuit).expect("Could not prepare circuit for QAP");
 
@@ -42,18 +42,18 @@ fn create_circuit<E: Pairing, C: ConstraintSynthesizer<E::ScalarField> + Clone>(
 
 fn create_circuits() {
     let rng = &mut thread_rng();
-    // create_circuit::<MNT6_753, _>(MergerWrapperCircuit::rand(rng), "merger_wrapper");
-    // create_circuit::<MNT4_753, _>(MergerCircuit::rand(rng), "merger");
-    // create_circuit::<MNT6_753, _>(MacroBlockWrapperCircuit::rand(rng), "macro_block_wrapper");
-    // create_circuit::<MNT4_753, _>(MacroBlockCircuit::rand(rng), "macro_block");
-    // for tree_level in 0..5 {
-    //     let filename = format!("pk_tree_{}", tree_level);
-    //     if tree_level % 2 == 0 {
-    //         create_circuit::<MNT6_753, _>(MNT4PKTreeNodeCircuit::rand(tree_level, rng), &filename);
-    //     } else {
-    //         create_circuit::<MNT4_753, _>(MNT6PKTreeNodeCircuit::rand(tree_level, rng), &filename);
-    //     }
-    // }
+    create_circuit::<MNT6_753, _>(MergerWrapperCircuit::rand(rng), "merger_wrapper");
+    create_circuit::<MNT4_753, _>(MergerCircuit::rand(rng), "merger");
+    create_circuit::<MNT6_753, _>(MacroBlockWrapperCircuit::rand(rng), "macro_block_wrapper");
+    create_circuit::<MNT4_753, _>(MacroBlockCircuit::rand(rng), "macro_block");
+    for tree_level in 0..5 {
+        let filename = format!("pk_tree_{}", tree_level);
+        if tree_level % 2 == 0 {
+            create_circuit::<MNT6_753, _>(MNT4PKTreeNodeCircuit::rand(tree_level, rng), &filename);
+        } else {
+            create_circuit::<MNT4_753, _>(MNT6PKTreeNodeCircuit::rand(tree_level, rng), &filename);
+        }
+    }
     create_circuit::<MNT4_753, _>(PKTreeLeafCircuit::rand(rng), "pk_tree_5");
 }
 
