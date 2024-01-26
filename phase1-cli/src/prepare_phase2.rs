@@ -15,6 +15,7 @@ pub fn prepare_phase2<T: Engine + Sync>(
     response_filename: &str,
     powers_phase2: usize,
     parameters: &Phase1Parameters<T>,
+    check_correctness: CheckForCorrectness,
 ) -> Result<()>
 where
     T::G1Affine: Neg<Output = T::G1Affine>,
@@ -42,7 +43,7 @@ where
     let current_accumulator = Phase1::deserialize(
         &response_readable_map,
         INPUT_IS_COMPRESSED,
-        CheckForCorrectness::Full,
+        check_correctness,
         &parameters,
     )
     .expect("unable to read uncompressed accumulator");
