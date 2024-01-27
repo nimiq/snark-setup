@@ -20,9 +20,6 @@ pub use transform_pok_and_correctness::transform_pok_and_correctness;
 mod transform_ratios;
 pub use transform_ratios::transform_ratios;
 
-mod prepare_phase2;
-pub use prepare_phase2::prepare_phase2;
-
 use setup_utils::converters::{ContributionMode, CurveKind, ProvingSystem};
 
 use gumdrop::Options;

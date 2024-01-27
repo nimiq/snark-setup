@@ -62,6 +62,12 @@ fn h_query_groth16<C: AffineRepr + Neg<Output = C>>(powers: &[C], degree: usize)
         .collect()
 }
 
+pub fn domain_size<P: Pairing>(phase2_size: usize) -> usize {
+    GeneralEvaluationDomain::<P::ScalarField>::new(phase2_size)
+        .unwrap()
+        .size()
+}
+
 impl<E: Pairing> Groth16Params<E>
 where
     E::G1Affine: Neg<Output = E::G1Affine>,
@@ -162,14 +168,13 @@ where
         Ok(())
     }
 
-    /// Reads the first `num_constraints` coefficients from the provided processed
+    /// Reads the first `domain_size` coefficients from the provided processed
     /// Phase 1 transcript with size `phase1_size`.
     pub fn read(
         reader: &mut [u8],
         compressed: UseCompression,
         check_input_for_correctness: CheckForCorrectness,
-        phase1_size: usize,
-        num_constraints: usize,
+        domain_size: usize,
     ) -> Result<Groth16Params<E>> {
         let span = info_span!("Groth16Utils_read");
         let _enter = span.enter();
@@ -184,7 +189,7 @@ where
 
         // Split the transcript in the appropriate sections
         let (in_coeffs_g1, in_coeffs_g2, in_alpha_coeffs_g1, in_beta_coeffs_g1, in_h_g1) =
-            split_transcript::<E>(reader, phase1_size, num_constraints, compressed);
+            split_transcript::<E>(reader, domain_size, domain_size, compressed);
 
         info!("reading groth16 parameters...");
         // Read all elements in parallel
@@ -324,33 +329,10 @@ mod tests {
             compressed,
             CheckForCorrectness::Full,
             prepared_phase1_size,
-            prepared_phase1_size, // phase2_size == prepared phase1 size
         )
         .unwrap();
         reader.set_position(0);
         assert_eq!(deserialized, groth_params);
-
-        let subset = prepared_phase1_size / 2;
-        let deserialized_subset = Groth16Params::<E>::read(
-            &mut reader.get_mut(),
-            compressed,
-            CheckForCorrectness::Full,
-            prepared_phase1_size,
-            subset, // phase2 size is smaller than the prepared phase1 size
-        )
-        .unwrap();
-        assert_eq!(&deserialized_subset.coeffs_g1[..], &groth_params.coeffs_g1[..subset]);
-        assert_eq!(&deserialized_subset.coeffs_g2[..], &groth_params.coeffs_g2[..subset]);
-        assert_eq!(
-            &deserialized_subset.alpha_coeffs_g1[..],
-            &groth_params.alpha_coeffs_g1[..subset]
-        );
-        assert_eq!(
-            &deserialized_subset.beta_coeffs_g1[..],
-            &groth_params.beta_coeffs_g1[..subset]
-        );
-        assert_eq!(&deserialized_subset.h_g1[..], &groth_params.h_g1[..subset - 1]);
-        // h_query is 1 less element
     }
 
     #[test]

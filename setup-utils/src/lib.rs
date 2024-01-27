@@ -9,7 +9,7 @@ pub use errors::{Error, InvariantKind, Phase2Error, VerificationError};
 pub type Result<T> = std::result::Result<T, Error>;
 
 mod groth16_utils;
-pub use groth16_utils::Groth16Params;
+pub use groth16_utils::{domain_size, Groth16Params};
 
 mod elements;
 pub use elements::{

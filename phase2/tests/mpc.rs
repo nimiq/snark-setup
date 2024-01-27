@@ -92,7 +92,6 @@ where
         writer.as_mut(),
         compressed,
         CheckForCorrectness::Full,
-        1 << powers,
         phase2_size,
     )
     .unwrap();
@@ -174,7 +173,6 @@ where
         writer.as_mut(),
         compressed,
         CheckForCorrectness::Full,
-        1 << powers,
         phase2_size,
         chunk_size,
     )

@@ -14,6 +14,9 @@ pub use verify::verify;
 mod combine;
 pub use combine::combine;
 
+mod prepare_phase2;
+pub use prepare_phase2::prepare_phase2;
+
 use setup_utils::converters::{ContributionMode, CurveKind, ProvingSystem};
 
 use gumdrop::Options;
@@ -111,8 +114,6 @@ pub struct NewOpts {
     pub challenge_list_fname: String,
     #[options(help = "phase 1 file name", default = "phase1")]
     pub phase1_fname: String,
-    #[options(help = "phase 1 powers")]
-    pub phase1_powers: usize,
     #[options(help = "number of validators")]
     pub num_validators: usize,
     #[options(help = "number of epochs")]

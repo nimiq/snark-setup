@@ -20,6 +20,7 @@ ark-bw6-761 = { version = "0.4", features = ["std"] }
 ark-groth16 = { version = "0.4", features = ["std"] }
 ark-mnt4-753 = { version = "0.4", features = ["std"] }
 ark-mnt6-753 = { version = "0.4", features = ["std"] }
+ark-poly = { version = "0.4", features = ["std"] }
 ark-snark = { version = "0.4", optional = true }
 ark-std = { version = "0.4", features = ["std"], optional = true }
 ark-relations = { version = "0.4", features = ["std"], optional = true }
@@ -71,3 +72,7 @@ required-features = ["cli", "phase2/testing"]
 [[bin]]
 name = "test_circuit"
 required-features = ["cli", "phase2/testing"]
+
+[[bin]]
+name = "prepare_phase2"
+required-features = ["cli"]

@@ -73,16 +73,9 @@ where
         transcript: &mut [u8],
         compressed: UseCompression,
         check_input_for_correctness: CheckForCorrectness,
-        phase1_size: usize,
-        phase2_size: usize,
+        domain_size: usize,
     ) -> Result<MPCParameters<E>> {
-        let params = Groth16Params::<E>::read(
-            transcript,
-            compressed,
-            check_input_for_correctness,
-            phase1_size,
-            phase2_size,
-        )?;
+        let params = Groth16Params::<E>::read(transcript, compressed, check_input_for_correctness, domain_size)?;
         Self::new(circuit, params)
     }
 
@@ -92,17 +85,10 @@ where
         transcript: &mut [u8],
         compressed: UseCompression,
         check_input_for_correctness: CheckForCorrectness,
-        phase1_size: usize,
-        phase2_size: usize,
+        domain_size: usize,
         chunk_size: usize,
     ) -> Result<(MPCParameters<E>, ProvingKey<E>, Vec<MPCParameters<E>>)> {
-        let params = Groth16Params::<E>::read(
-            transcript,
-            compressed,
-            check_input_for_correctness,
-            phase1_size,
-            phase2_size,
-        )?;
+        let params = Groth16Params::<E>::read(transcript, compressed, check_input_for_correctness, domain_size)?;
         Self::new_chunked(circuit, params, chunk_size)
     }
 

@@ -10,10 +10,13 @@ use std::fs::OpenOptions;
 const INPUT_IS_COMPRESSED: UseCompression = UseCompression::No;
 const OUTPUT_IS_COMPRESSED: UseCompression = UseCompression::No;
 
+/// `phase2_size` should equal to the number of constraints + instance variables of the original circuit.
+/// Since our matrices have additional constraints for each instance variables,
+/// this usually corresponds to the number of constraints in these.
 pub fn prepare_phase2<T: Engine + Sync>(
     phase2_filename: &str,
     response_filename: &str,
-    powers_phase2: usize,
+    phase2_size: usize,
     parameters: &Phase1Parameters<T>,
     check_correctness: CheckForCorrectness,
 ) -> Result<()>
@@ -50,7 +53,7 @@ where
 
     // Load the elements to the Groth16 utility
     let groth16_params = Groth16Params::<T>::new(
-        1 << powers_phase2,
+        phase2_size,
         current_accumulator.tau_powers_g1,
         current_accumulator.tau_powers_g2,
         current_accumulator.alpha_tau_powers_g1,

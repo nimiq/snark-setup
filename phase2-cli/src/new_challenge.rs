@@ -1,5 +1,5 @@
 use phase2::{load_circuit::Matrices, parameters::MPCParameters};
-use setup_utils::{calculate_hash, print_hash, write_to_file, CheckForCorrectness, UseCompression};
+use setup_utils::{calculate_hash, domain_size, print_hash, write_to_file, CheckForCorrectness, UseCompression};
 
 use crate::COMPRESS_CONTRIBUTE_INPUT;
 use ark_ec::pairing::Pairing;
@@ -17,8 +17,7 @@ pub fn new_challenge<P: Pairing + Sync>(
     challenge_hash_filename: &str,
     challenge_list_filename: &str,
     chunk_size: usize,
-    phase1_filename: &str,
-    phase1_powers: usize,
+    phase2_init_filename: &str,
     circuit_filename: &str,
 ) -> usize
 where
@@ -33,14 +32,18 @@ where
 
     info!("Loaded circuit with {} constraints", m.num_constraints);
 
-    let phase2_size =
-        std::cmp::max(m.num_constraints, m.num_witness_variables + m.num_instance_variables).next_power_of_two();
-    let chunk_size = std::cmp::min(chunk_size, phase2_size);
+    // The FFT domain size should >= num_constraints + num_instance_variables of the *original* circuit.
+    // Since we add to the original circuits num_instance_variables constraints,
+    // we can directly use num_constraints instead.
+    let phase2_size = std::cmp::max(m.num_constraints, m.num_witness_variables + m.num_instance_variables);
+    let domain_size = domain_size::<P>(phase2_size);
+
+    let chunk_size = std::cmp::min(chunk_size, domain_size);
 
     let reader = OpenOptions::new()
         .read(true)
         .write(true)
-        .open(&phase1_filename)
+        .open(&phase2_init_filename)
         .expect("unable open phase 1 file in this directory");
     let mut phase1_readable_map = unsafe {
         MmapOptions::new()
@@ -53,8 +56,7 @@ where
         &mut phase1_readable_map,
         UseCompression::No,
         CheckForCorrectness::No,
-        1 << phase1_powers,
-        phase2_size,
+        domain_size,
         chunk_size,
     )
     .unwrap();

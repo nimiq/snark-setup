@@ -45,7 +45,3 @@ parallel = ["phase1/parallel", "setup-utils/parallel", "ark-ec/parallel"]
 [[bin]]
 name = "phase1"
 required-features = ["cli"]
-
-[[bin]]
-name = "prepare_phase2"
-required-features = ["cli"]

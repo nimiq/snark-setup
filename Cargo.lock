@@ -150,8 +150,7 @@ dependencies = [
 [[package]]
 name = "ark-ec"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "defd9a439d56ac24968cca0571f598a61bc8c55f71d50a89cda591cb750670ba"
+source = "git+https://github.com/paberr/algebra?branch=pb/0.4#1ab82cb767bc4e462cfd1a4b89e9d4996586fbf6"
 dependencies = [
  "ark-ff 0.4.2",
  "ark-poly 0.4.2",
@@ -187,8 +186,7 @@ dependencies = [
 [[package]]
 name = "ark-ff"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec847af850f44ad29048935519032c33da8aa03340876d351dfab5660d2966ba"
+source = "git+https://github.com/paberr/algebra?branch=pb/0.4#1ab82cb767bc4e462cfd1a4b89e9d4996586fbf6"
 dependencies = [
  "ark-ff-asm 0.4.2",
  "ark-ff-macros 0.4.2",
@@ -409,8 +407,7 @@ dependencies = [
 [[package]]
 name = "ark-r1cs-std"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de1d1472e5cb020cb3405ce2567c91c8d43f21b674aef37b0202f5c3304761db"
+source = "git+https://github.com/paberr/r1cs-std?branch=pb/fix-pedersen#6eebca4dcab85efa6a855296137b2a9d4022a221"
 dependencies = [
  "ark-ec 0.4.2",
  "ark-ff 0.4.2",
@@ -1420,6 +1417,7 @@ dependencies = [
  "ark-groth16",
  "ark-mnt4-753",
  "ark-mnt6-753",
+ "ark-poly 0.4.2",
  "ark-relations 0.4.0",
  "ark-serialize 0.4.2",
  "ark-snark",
@@ -1782,6 +1780,7 @@ dependencies = [
  "ark-bw6-761",
  "ark-ec 0.4.2",
  "ark-ff 0.4.2",
+ "ark-mnt6-753",
  "ark-poly 0.4.2",
  "ark-relations 0.4.0",
  "ark-serialize 0.4.2",

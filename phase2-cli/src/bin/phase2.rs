@@ -42,7 +42,6 @@ where
                 &opt.challenge_list_fname,
                 opts.chunk_size,
                 &opt.phase1_fname,
-                opt.phase1_powers,
                 &opt.circuit_fname,
             );
         }
