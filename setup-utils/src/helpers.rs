@@ -17,7 +17,7 @@ use std::{
     ops::{AddAssign, Mul},
     sync::Arc,
 };
-use tracing::info;
+use tracing::{error, info};
 use typenum::consts::U64;
 
 #[cfg(not(feature = "wasm"))]
@@ -413,9 +413,11 @@ pub fn check_same_ratio<E: Pairing>(
     err: String,
 ) -> Result<()> {
     if g1.0.is_zero() || g1.1.is_zero() || g2.0.is_zero() || g2.1.is_zero() {
+        error!("Invalid Ratio: zero");
         return Err(VerificationError::InvalidRatio(err).into());
     }
     if E::pairing(g1.0, g2.1) != E::pairing(g1.1, g2.0) {
+        error!("Invalid Ratio: wrong pairing");
         return Err(VerificationError::InvalidRatio(err).into());
     }
     Ok(())
